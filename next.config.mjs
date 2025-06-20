@@ -37,7 +37,7 @@ const nextConfig = {
   },
 
   // Remove static export for dynamic functionality
-  output: 'export', // Remove this line
+  // output: 'export', // Remove this line
   
   async headers() {
     return [
