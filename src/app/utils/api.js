@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API URL from environment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 console.log('🌱 Farmers Ferts API URL:', API_BASE_URL);
 
