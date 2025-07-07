@@ -9,7 +9,6 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "clean": "rm -rf .next out node_modules package-lock.json",
-    "export": "next build",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
