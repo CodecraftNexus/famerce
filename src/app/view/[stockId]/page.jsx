@@ -209,379 +209,392 @@ export default function ProductPage() {
 
   // Enhanced download handler with improved error handling and logging
   const handleDocumentDownload = async (docPath, filename, type = 'documents') => {
-    if (!docPath || !isDocumentAvailable(docPath)) {
-      showNotification('No document available for download', 'error');
-      return;
-    }
+ if (!docPath || !isDocumentAvailable(docPath)) {
+    showNotification('No document available for download', 'error');
+    return;
+  }
+  
+  if (downloadLoading) {
+    showNotification('Another download is in progress', 'warning');
+    return;
+  }
+  
+  console.log('⬇️ Starting download for:', docPath);
+  
+  setDownloadLoading(true);
+  const loadingElement = showLoadingIndicator();
+  
+  try {
+    // Method 1: Use the new enhanced download route from backend
+    const encodedPath = encodeURIComponent(docPath);
+    const downloadUrl = `${API_URL}/api/download/${encodedPath}`;
     
-    if (downloadLoading) {
-      showNotification('Another download is in progress', 'warning');
-      return;
-    }
+    console.log('🔗 Using download URL:', downloadUrl);
     
-    console.log('⬇️ Starting download for:', docPath);
-    
-    setDownloadLoading(true);
-    const loadingElement = showLoadingIndicator();
-    
+    // Try downloading using fetch to handle errors properly
     try {
-      // Method 1: Try getting signed URL from backend
-      const downloadUrl = await getDocumentDownloadUrl(docPath, type);
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Accept': 'application/octet-stream, application/pdf, */*'
+        }
+      });
       
-      if (downloadUrl) {
-        console.log('✅ Got download URL, creating download link');
-        
-        // Create download link
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = filename || getFilenameFromPath(docPath) || 'document.pdf';
-        link.style.display = 'none';
-        link.rel = 'noopener noreferrer';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showNotification('Download started successfully', 'success');
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the blob data
+      const blob = await response.blob();
+      
+      // Get filename from response headers or use provided filename
+      let downloadFilename = filename;
+      const contentDisposition = response.headers.get('Content-Disposition');
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          downloadFilename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+      
+      // Fallback filename generation
+      if (!downloadFilename || downloadFilename === 'undefined') {
+        const fileExtension = getFileExtensionFromPath(docPath) || 'pdf';
+        downloadFilename = `document_${Date.now()}.${fileExtension}`;
+      }
+      
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = downloadFilename;
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+      
+      showNotification(`Download started: ${downloadFilename}`, 'success');
+      
+    } catch (fetchError) {
+      console.error('❌ Fetch download failed:', fetchError);
+      
+      // Method 2: Fallback to direct window.open with download parameter
+      const fallbackUrl = `${API_URL}/api/documents/${encodedPath}?download=true`;
+      console.log('🔄 Trying fallback download URL:', fallbackUrl);
+      
+      // Create a temporary iframe to trigger download
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = fallbackUrl;
+      document.body.appendChild(iframe);
+      
+      // Remove iframe after a short delay
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 3000);
+      
+      showNotification('Download initiated via fallback method', 'info');
+    }
+    
+  } catch (error) {
+    console.error('❌ Download failed completely:', error);
+    
+    // Method 3: Last resort - try the old signed URL method but force download
+    try {
+      console.log('🔄 Trying signed URL method as last resort');
+      
+      const response = await axios.post(`${API_URL}/api/documents/get-signed-url`, {
+        filePath: docPath,
+        type: 'download' // Force download type
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.data.success) {
+        // Use the server download URL if available
+        if (response.data.serverDownloadUrl) {
+          const serverUrl = `${API_URL}${response.data.serverDownloadUrl}`;
+          window.open(serverUrl, '_blank');
+          showNotification('Download opened in new tab', 'info');
+        } else {
+          // Use signed URL but try to force download
+          const signedUrl = response.data.signedUrl;
+          
+          // Try to download using fetch first
+          try {
+            const fetchResponse = await fetch(signedUrl);
+            const blob = await fetchResponse.blob();
+            
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || 'document.pdf';
+            link.click();
+            
+            window.URL.revokeObjectURL(url);
+            showNotification('Download completed via signed URL', 'success');
+          } catch (signedFetchError) {
+            // If fetch fails, just open the URL
+            window.open(signedUrl, '_blank');
+            showNotification('Document opened in new tab', 'info');
+          }
+        }
       } else {
-        // Method 2: Try direct backend download
-        console.log('🔄 Trying direct backend download');
-        const fileName = extractFileName(docPath);
-        const encodedFilename = encodeURIComponent(fileName);
-        const directUrl = `${API_URL}/api/documents/download/${type}/${encodedFilename}`;
-        
-        window.open(directUrl, '_blank', 'noopener,noreferrer');
-        showNotification('Opening document in new tab', 'info');
+        throw new Error('Failed to get signed URL');
       }
-      
-    } catch (error) {
-      console.error('❌ Download failed:', error);
-      showNotification('Download failed. Please try again or contact support.', 'error');
-    } finally {
-      setDownloadLoading(false);
-      hideLoadingIndicator(loadingElement);
+    } catch (signedUrlError) {
+      console.error('❌ Signed URL method also failed:', signedUrlError);
+      showNotification('All download methods failed. Please contact support.', 'error');
     }
-  };
+  } finally {
+    setDownloadLoading(false);
+    hideLoadingIndicator(loadingElement);
+  }
+};
 
-  // Show loading indicator
-  const showLoadingIndicator = () => {
-    const loadingElement = document.createElement('div');
-    loadingElement.id = 'download-loading';
-    loadingElement.innerHTML = `
-      <div style="
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        width: 100vw; 
-        height: 100vh; 
-        background: rgba(0,0,0,0.5); 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        z-index: 9999;
-      ">
-        <div style="
-          background: white; 
-          padding: 30px; 
-          border-radius: 15px; 
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-          text-align: center;
-          max-width: 300px;
-        ">
-          <div style="
-            width: 40px; 
-            height: 40px; 
-            border: 4px solid #f3f3f3; 
-            border-top: 4px solid #2d5a27; 
-            border-radius: 50%; 
-            animation: spin 1s linear infinite; 
-            margin: 0 auto 20px;
-          "></div>
-          <div style="font-size: 18px; margin-bottom: 10px; color: #2d5a27;">📥 Preparing Download</div>
-          <div style="font-size: 14px; color: #666;">Please wait while we fetch your document...</div>
-        </div>
-      </div>
-      <style>
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      </style>
-    `;
-    document.body.appendChild(loadingElement);
-    return loadingElement;
-  };
-
-  // Hide loading indicator
-  const hideLoadingIndicator = (loadingElement) => {
+// Enhanced function to force download using alternative methods
+const forceDownload = async (url, filename) => {
+  try {
+    // Method 1: Fetch and create blob
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Fetch failed');
+    }
+    
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename || 'document.pdf';
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up
     setTimeout(() => {
-      if (loadingElement && loadingElement.parentNode) {
-        document.body.removeChild(loadingElement);
-      }
-    }, 500);
-  };
+      window.URL.revokeObjectURL(blobUrl);
+    }, 1000);
+    
+    return true;
+  } catch (error) {
+    console.error('Force download failed:', error);
+    return false;
+  }
+};
 
-  // Show notification
-  const showNotification = (message, type = 'info') => {
-    const colors = {
-      success: { bg: '#d4edda', border: '#c3e6cb', text: '#155724', icon: '✅' },
-      error: { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24', icon: '❌' },
-      warning: { bg: '#fff3cd', border: '#ffeaa7', text: '#856404', icon: '⚠️' },
-      info: { bg: '#d1ecf1', border: '#bee5eb', text: '#0c5460', icon: 'ℹ️' }
-    };
+// Alternative download method using hidden iframe
+const downloadViaIframe = (url, filename) => {
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
     
-    const color = colors[type] || colors.info;
+    // Add download attribute if possible
+    if (filename) {
+      iframe.setAttribute('download', filename);
+    }
     
-    const notification = document.createElement('div');
-    notification.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${color.bg};
-        border: 1px solid ${color.border};
-        color: ${color.text};
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        z-index: 10000;
-        max-width: 300px;
-        animation: slideIn 0.3s ease-out;
-      ">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 16px;">${color.icon}</span>
-          <span style="font-size: 14px;">${message}</span>
-        </div>
-      </div>
-      <style>
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      </style>
-    `;
+    document.body.appendChild(iframe);
     
-    document.body.appendChild(notification);
-    
+    // Remove iframe after download
     setTimeout(() => {
-      if (notification.parentNode) {
-        document.body.removeChild(notification);
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
       }
-    }, 4000);
+    }, 5000);
+    
+    return true;
+  } catch (error) {
+    console.error('Iframe download failed:', error);
+    return false;
+  }
+};
+
+// Updated SmartDownloadButton component with enhanced download
+const SmartDownloadButton = ({ docPath, filename, type, label, disabled = false }) => {
+  if (!isDocumentAvailable(docPath)) {
+    return null; // Don't render button if no document
+  }
+
+  const handleClick = async () => {
+    await handleDocumentDownload(docPath, filename, type);
   };
 
-  // Helper function to extract filename from URL
-  const getFilenameFromPath = (path) => {
-    try {
-      const cleanPath = path.split(',')[0].trim();
-      
-      if (cleanPath.includes('/')) {
-        const segments = cleanPath.split('/');
-        const lastSegment = segments[segments.length - 1];
-        
-        if (lastSegment && lastSegment.includes('.')) {
-          return decodeURIComponent(lastSegment);
-        }
-      }
-      
-      // Generate filename based on file type
-      const extension = getFileExtensionFromPath(cleanPath) || 'pdf';
-      return `document.${extension}`;
-    } catch (error) {
-      return 'document.pdf';
-    }
-  };
-
-  // Helper function to get file extension
-  const getFileExtensionFromPath = (path) => {
-    const pathLower = path.toLowerCase();
-    if (pathLower.includes('.pdf')) return 'pdf';
-    if (pathLower.includes('.doc')) return 'doc';
-    if (pathLower.includes('.docx')) return 'docx';
-    return 'pdf';
-  };
-
-  // Enhanced Ingredients Table Component
-  const IngredientsTable = ({ ingredients }) => {
-    if (!ingredients || ingredients.length === 0) {
-      return (
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          border: '1px solid #dee2e6',
-          textAlign: 'center',
-          color: '#6c757d'
-        }}>
-          No ingredients information available
-        </div>
-      );
-    }
-
-    return (
+  return (
+    <div style={{
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '16px'
+    }}>
       <div style={{
-        backgroundColor: 'white',
-        border: '1px solid #dee2e6',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-        <div style={{
-          backgroundColor: '#2d5a27',
-          color: 'white',
-          padding: '12px 16px',
-          fontWeight: 'bold',
-          fontSize: '16px'
-        }}>
-          🧪 Ingredients Composition
-        </div>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse'
-        }}>
-          <thead>
-            <tr style={{
-              backgroundColor: '#f8f9fa',
-              borderBottom: '2px solid #dee2e6'
-            }}>
-              <th style={{
-                padding: '12px 16px',
-                textAlign: 'left',
-                fontWeight: '600',
-                color: '#495057',
-                borderRight: '1px solid #dee2e6'
-              }}>
-                Ingredient Name
-              </th>
-              <th style={{
-                padding: '12px 16px',
-                textAlign: 'center',
-                fontWeight: '600',
-                color: '#495057',
-                width: '120px'
-              }}>
-                Percentage
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ingredients.map((ingredient, index) => (
-              <tr key={index} style={{
-                borderBottom: index < ingredients.length - 1 ? '1px solid #dee2e6' : 'none',
-                backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
-              }}>
-                <td style={{
-                  padding: '12px 16px',
-                  borderRight: '1px solid #dee2e6',
-                  color: '#212529'
-                }}>
-                  <span style={{
-                    fontWeight: '500'
-                  }}>
-                    {ingredient.name}
-                  </span>
-                </td>
-                <td style={{
-                  padding: '12px 16px',
-                  textAlign: 'center',
-                  color: '#495057'
-                }}>
-                  <span style={{
-                    backgroundColor: '#e3f2fd',
-                    color: '#1976d2',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontWeight: '600',
-                    fontSize: '14px'
-                  }}>
-                    {ingredient.percentage}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  // Smart Download Button Component
-  const SmartDownloadButton = ({ docPath, filename, type, label, disabled = false }) => {
-    if (!isDocumentAvailable(docPath)) {
-      return null; // Don't render button if no document
-    }
-
-    return (
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        border: '1px solid #dee2e6',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '16px'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <div style={{
-              fontWeight: '600',
-              color: '#212529',
-              marginBottom: '4px'
-            }}>
-              {label}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6c757d'
-            }}>
-              Document available for download
-            </div>
+        <div>
+          <div style={{
+            fontWeight: '600',
+            color: '#212529',
+            marginBottom: '4px'
+          }}>
+            {label}
           </div>
-          <button 
-            onClick={() => handleDocumentDownload(docPath, filename, type)}
-            disabled={disabled || downloadLoading}
-            style={{
-              backgroundColor: disabled || downloadLoading ? '#6c757d' : '#2d5a27',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: disabled || downloadLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => {
-              if (!disabled && !downloadLoading) {
-                e.target.style.backgroundColor = '#1e3f1a';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!disabled && !downloadLoading) {
-                e.target.style.backgroundColor = '#2d5a27';
-              }
-            }}
-          >
-            {downloadLoading ? (
-              <>
-                <span>⏳</span>
-                <span>Preparing...</span>
-              </>
-            ) : (
-              <>
-                <span>📥</span>
-                <span>Download</span>
-              </>
-            )}
-          </button>
+          <div style={{
+            fontSize: '14px',
+            color: '#6c757d'
+          }}>
+            Click to download document to your device
+          </div>
+        </div>
+        <button 
+          onClick={handleClick}
+          disabled={disabled || downloadLoading}
+          style={{
+            backgroundColor: disabled || downloadLoading ? '#6c757d' : '#2d5a27',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: disabled || downloadLoading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease',
+            boxShadow: disabled || downloadLoading ? 'none' : '0 2px 4px rgba(0,0,0,0.1)'
+          }}
+          onMouseOver={(e) => {
+            if (!disabled && !downloadLoading) {
+              e.target.style.backgroundColor = '#1e3f1a';
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!disabled && !downloadLoading) {
+              e.target.style.backgroundColor = '#2d5a27';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            }
+          }}
+        >
+          {downloadLoading ? (
+            <>
+              <span style={{ 
+                animation: 'spin 1s linear infinite',
+                display: 'inline-block'
+              }}>⏳</span>
+              <span>Downloading...</span>
+            </>
+          ) : (
+            <>
+              <span>📥</span>
+              <span>Download</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced notification system with download progress
+const showDownloadNotification = (message, type = 'info', duration = 4000) => {
+  const colors = {
+    success: { bg: '#d4edda', border: '#c3e6cb', text: '#155724', icon: '✅' },
+    error: { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24', icon: '❌' },
+    warning: { bg: '#fff3cd', border: '#ffeaa7', text: '#856404', icon: '⚠️' },
+    info: { bg: '#d1ecf1', border: '#bee5eb', text: '#0c5460', icon: 'ℹ️' },
+    downloading: { bg: '#e3f2fd', border: '#bbdefb', text: '#0d47a1', icon: '📥' }
+  };
+  
+  const color = colors[type] || colors.info;
+  
+  const notification = document.createElement('div');
+  notification.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${color.bg};
+      border: 1px solid ${color.border};
+      color: ${color.text};
+      padding: 16px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      z-index: 10000;
+      max-width: 350px;
+      animation: slideIn 0.3s ease-out;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 18px; flex-shrink: 0;">${color.icon}</span>
+        <div style="flex: 1;">
+          <div style="font-size: 14px; font-weight: 500; margin-bottom: 2px;">
+            ${type === 'downloading' ? 'Download Started' : 
+              type === 'success' ? 'Download Complete' : 
+              type === 'error' ? 'Download Failed' : 'Download Info'}
+          </div>
+          <div style="font-size: 13px; opacity: 0.9;">${message}</div>
         </div>
       </div>
-    );
+    </div>
+    <style>
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    </style>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideOut 0.3s ease-in forwards';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          document.body.removeChild(notification);
+        }
+      }, 300);
+    }
+  }, duration);
+  
+  // Add slideOut animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return notification;
+};
   };
 
   if (loading) {
