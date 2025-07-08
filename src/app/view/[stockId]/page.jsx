@@ -118,35 +118,51 @@ export default function ProductPage() {
     return `${API_URL}/api/images/${encodeURIComponent(cleanPath)}`;
   };
 
+  // Enhanced file path processing to handle multiple files
+  const processFilePaths = (docPath) => {
+    if (!docPath || typeof docPath !== 'string') return [];
+    
+    // Split by comma to handle multiple files
+    const paths = docPath.split(',').map(path => path.trim()).filter(path => path);
+    
+    return paths.filter(path => 
+      path && 
+      path !== 'No documents uploaded' && 
+      path !== 'No document uploaded' &&
+      path !== '' &&
+      !path.toLowerCase().includes('no document') &&
+      !path.toLowerCase().includes('not available')
+    );
+  };
+
   // Check if document is uploaded and available for download
   const isDocumentAvailable = (docPath) => {
-    if (!docPath) return false;
-    
-    const cleanPath = docPath.trim();
-    return cleanPath && 
-           cleanPath !== 'No documents uploaded' && 
-           cleanPath !== 'No document uploaded' &&
-           cleanPath !== '' &&
-           !cleanPath.toLowerCase().includes('no document') &&
-           !cleanPath.toLowerCase().includes('not available');
+    const validPaths = processFilePaths(docPath);
+    return validPaths.length > 0;
   };
 
   // Extract filename from various path formats
-  const extractFileName = (path) => {
+  const extractFileName = (path, index = 0) => {
     if (!path) return '';
     
-    const cleanPath = path.split(',')[0].trim();
+    const cleanPath = path.trim();
     
     // If it's a Cloudinary URL, extract filename
     if (cleanPath.startsWith('https://res.cloudinary.com/')) {
       const urlParts = cleanPath.split('/');
-      return urlParts[urlParts.length - 1];
+      let filename = urlParts[urlParts.length - 1];
+      // Remove any query parameters
+      filename = filename.split('?')[0];
+      return filename;
     }
     
     // If it's a path with slashes, get the last part
     if (cleanPath.includes('/')) {
       const segments = cleanPath.split('/');
-      return segments[segments.length - 1];
+      let filename = segments[segments.length - 1];
+      // Remove any query parameters
+      filename = filename.split('?')[0];
+      return filename;
     }
     
     return cleanPath;
@@ -158,27 +174,36 @@ export default function ProductPage() {
     if (pathLower.includes('.pdf')) return 'pdf';
     if (pathLower.includes('.doc')) return 'doc';
     if (pathLower.includes('.docx')) return 'docx';
+    if (pathLower.includes('.jpg') || pathLower.includes('.jpeg')) return 'jpg';
+    if (pathLower.includes('.png')) return 'png';
     return 'pdf';
   };
 
   // Helper function to extract filename from URL
-  const getFilenameFromPath = (path) => {
+  const getFilenameFromPath = (path, defaultName = 'document', index = 0) => {
     try {
-      const cleanPath = path.split(',')[0].trim();
+      const cleanPath = path.trim();
       
-      if (cleanPath.includes('/')) {
-        const segments = cleanPath.split('/');
-        const lastSegment = segments[segments.length - 1];
-        
-        if (lastSegment && lastSegment.includes('.')) {
-          return decodeURIComponent(lastSegment);
+      // Extract filename from path
+      let filename = extractFileName(cleanPath);
+      
+      if (filename && filename.includes('.')) {
+        // If we have multiple files, add index to filename
+        if (index > 0) {
+          const lastDotIndex = filename.lastIndexOf('.');
+          const name = filename.substring(0, lastDotIndex);
+          const extension = filename.substring(lastDotIndex);
+          return `${name}_${index + 1}${extension}`;
         }
+        return decodeURIComponent(filename);
       }
       
       const extension = getFileExtensionFromPath(cleanPath) || 'pdf';
-      return `document.${extension}`;
+      const suffix = index > 0 ? `_${index + 1}` : '';
+      return `${defaultName}${suffix}.${extension}`;
     } catch (error) {
-      return 'document.pdf';
+      const suffix = index > 0 ? `_${index + 1}` : '';
+      return `${defaultName}${suffix}.pdf`;
     }
   };
 
@@ -312,26 +337,15 @@ export default function ProductPage() {
     }
   };
 
-  // Enhanced download handler with proper file download functionality
-  const handleDocumentDownload = async (docPath, filename, type = 'documents') => {
-    if (!docPath || !isDocumentAvailable(docPath)) {
-      showDownloadNotification('No document available for download', 'error');
-      return;
-    }
-    
-    if (downloadLoading) {
-      showDownloadNotification('Another download is in progress', 'warning');
-      return;
-    }
-    
-    console.log('⬇️ Starting download for:', docPath);
-    
-    setDownloadLoading(true);
-    const loadingElement = showLoadingIndicator();
+  // Enhanced download handler for single file
+  const downloadSingleFile = async (filePath, defaultFilename, index = 0) => {
+    console.log(`⬇️ Downloading file ${index + 1}:`, filePath);
     
     try {
+      const filename = getFilenameFromPath(filePath, defaultFilename, index);
+      
       // Method 1: Use the new enhanced download route from backend
-      const encodedPath = encodeURIComponent(docPath);
+      const encodedPath = encodeURIComponent(filePath);
       const downloadUrl = `${API_URL}/api/download/${encodedPath}`;
       
       console.log('🔗 Using download URL:', downloadUrl);
@@ -365,8 +379,9 @@ export default function ProductPage() {
         
         // Fallback filename generation
         if (!downloadFilename || downloadFilename === 'undefined') {
-          const fileExtension = getFileExtensionFromPath(docPath) || 'pdf';
-          downloadFilename = `document_${Date.now()}.${fileExtension}`;
+          const fileExtension = getFileExtensionFromPath(filePath) || 'pdf';
+          const suffix = index > 0 ? `_${index + 1}` : '';
+          downloadFilename = `${defaultFilename}${suffix}.${fileExtension}`;
         }
         
         // Create download link and trigger download
@@ -385,7 +400,7 @@ export default function ProductPage() {
           window.URL.revokeObjectURL(url);
         }, 1000);
         
-        showDownloadNotification(`Download completed: ${downloadFilename}`, 'success');
+        return { success: true, filename: downloadFilename };
         
       } catch (fetchError) {
         console.error('❌ Fetch download failed:', fetchError);
@@ -398,12 +413,12 @@ export default function ProductPage() {
         const forceDownloadSuccess = await forceDownload(fallbackUrl, filename);
         
         if (forceDownloadSuccess) {
-          showDownloadNotification('Download completed via fallback method', 'success');
+          return { success: true, filename, method: 'fallback' };
         } else {
           // Use iframe method as last resort
           const iframeSuccess = downloadViaIframe(fallbackUrl, filename);
           if (iframeSuccess) {
-            showDownloadNotification('Download initiated via alternative method', 'info');
+            return { success: true, filename, method: 'iframe' };
           } else {
             throw new Error('All download methods failed');
           }
@@ -418,7 +433,7 @@ export default function ProductPage() {
         console.log('🔄 Trying signed URL method as last resort');
         
         const response = await axios.post(`${API_URL}/api/documents/get-signed-url`, {
-          filePath: docPath,
+          filePath: filePath,
           type: 'download'
         }, {
           withCredentials: true,
@@ -428,16 +443,18 @@ export default function ProductPage() {
         });
         
         if (response.data.success) {
+          const filename = getFilenameFromPath(filePath, defaultFilename, index);
+          
           // Use the server download URL if available
           if (response.data.serverDownloadUrl) {
             const serverUrl = `${API_URL}${response.data.serverDownloadUrl}`;
             const downloadSuccess = await forceDownload(serverUrl, filename);
             
             if (downloadSuccess) {
-              showDownloadNotification('Download completed via server URL', 'success');
+              return { success: true, filename, method: 'server' };
             } else {
               window.open(serverUrl, '_blank');
-              showDownloadNotification('Download opened in new tab', 'info');
+              return { success: true, filename, method: 'new_tab' };
             }
           } else {
             // Use signed URL but try to force download
@@ -450,14 +467,14 @@ export default function ProductPage() {
               const url = window.URL.createObjectURL(blob);
               const link = document.createElement('a');
               link.href = url;
-              link.download = filename || 'document.pdf';
+              link.download = filename;
               link.click();
               
               window.URL.revokeObjectURL(url);
-              showDownloadNotification('Download completed via signed URL', 'success');
+              return { success: true, filename, method: 'signed' };
             } catch (signedFetchError) {
               window.open(signedUrl, '_blank');
-              showDownloadNotification('Document opened in new tab', 'info');
+              return { success: true, filename, method: 'signed_tab' };
             }
           }
         } else {
@@ -465,8 +482,81 @@ export default function ProductPage() {
         }
       } catch (signedUrlError) {
         console.error('❌ Signed URL method also failed:', signedUrlError);
-        showDownloadNotification('All download methods failed. Please contact support.', 'error');
+        return { success: false, error: 'All download methods failed' };
       }
+    }
+  };
+
+  // Enhanced download handler with proper file download functionality for multiple files
+  const handleDocumentDownload = async (docPath, defaultFilename, type = 'documents') => {
+    const validPaths = processFilePaths(docPath);
+    
+    if (validPaths.length === 0) {
+      showDownloadNotification('No documents available for download', 'error');
+      return;
+    }
+    
+    if (downloadLoading) {
+      showDownloadNotification('Another download is in progress', 'warning');
+      return;
+    }
+    
+    console.log('⬇️ Starting download for paths:', validPaths);
+    
+    setDownloadLoading(true);
+    const loadingElement = showLoadingIndicator();
+    
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      const downloadedFiles = [];
+      
+      // Download each file
+      for (let i = 0; i < validPaths.length; i++) {
+        const filePath = validPaths[i];
+        console.log(`📥 Processing file ${i + 1}/${validPaths.length}:`, filePath);
+        
+        try {
+          const result = await downloadSingleFile(filePath, defaultFilename, i);
+          
+          if (result.success) {
+            successCount++;
+            downloadedFiles.push(result.filename);
+            console.log(`✅ Successfully downloaded: ${result.filename}`);
+          } else {
+            failCount++;
+            console.log(`❌ Failed to download file ${i + 1}:`, result.error);
+          }
+        } catch (fileError) {
+          failCount++;
+          console.error(`❌ Error downloading file ${i + 1}:`, fileError);
+        }
+        
+        // Add small delay between downloads to prevent overwhelming the server
+        if (i < validPaths.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      // Show appropriate notification based on results
+      if (successCount === validPaths.length) {
+        if (validPaths.length === 1) {
+          showDownloadNotification(`Download completed: ${downloadedFiles[0]}`, 'success');
+        } else {
+          showDownloadNotification(`All ${successCount} files downloaded successfully`, 'success');
+        }
+      } else if (successCount > 0) {
+        showDownloadNotification(
+          `${successCount} of ${validPaths.length} files downloaded successfully. ${failCount} failed.`, 
+          'warning'
+        );
+      } else {
+        showDownloadNotification('All download attempts failed. Please contact support.', 'error');
+      }
+      
+    } catch (error) {
+      console.error('❌ Download process failed:', error);
+      showDownloadNotification('Download process failed. Please try again later.', 'error');
     } finally {
       setDownloadLoading(false);
       hideLoadingIndicator(loadingElement);
@@ -508,7 +598,7 @@ export default function ProductPage() {
             margin: 0 auto 20px;
           "></div>
           <div style="font-size: 18px; margin-bottom: 10px; color: #2d5a27;">📥 Preparing Download</div>
-          <div style="font-size: 14px; color: #666;">Please wait while we fetch your document...</div>
+          <div style="font-size: 14px; color: #666;">Please wait while we fetch your documents...</div>
         </div>
       </div>
       <style>
@@ -635,15 +725,20 @@ export default function ProductPage() {
     );
   };
 
-  // Enhanced Smart Download Button Component
+  // Enhanced Smart Download Button Component with file count display
   const SmartDownloadButton = ({ docPath, filename, type, label, disabled = false }) => {
-    if (!isDocumentAvailable(docPath)) {
+    const validPaths = processFilePaths(docPath);
+    
+    if (validPaths.length === 0) {
       return null;
     }
 
     const handleClick = async () => {
       await handleDocumentDownload(docPath, filename, type);
     };
+
+    const fileCount = validPaths.length;
+    const isMultipleFiles = fileCount > 1;
 
     return (
       <div style={{
@@ -665,12 +760,28 @@ export default function ProductPage() {
               marginBottom: '4px'
             }}>
               {label}
+              {isMultipleFiles && (
+                <span style={{
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  fontSize: '12px',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  marginLeft: '8px',
+                  fontWeight: '500'
+                }}>
+                  {fileCount} files
+                </span>
+              )}
             </div>
             <div style={{
               fontSize: '14px',
               color: '#6c757d'
             }}>
-              Click to download document to your device
+              {isMultipleFiles 
+                ? `Click to download all ${fileCount} documents to your device`
+                : 'Click to download document to your device'
+              }
             </div>
           </div>
           <button 
@@ -717,7 +828,7 @@ export default function ProductPage() {
             ) : (
               <>
                 <span>📥</span>
-                <span>Download</span>
+                <span>{isMultipleFiles ? 'Download All' : 'Download'}</span>
               </>
             )}
           </button>
@@ -962,7 +1073,7 @@ export default function ProductPage() {
                 <div style={{ marginBottom: '16px' }}>
                   <SmartDownloadButton 
                     docPath={data.msds}
-                    filename="MSDS.pdf"
+                    filename="MSDS"
                     type="documents"
                     label="Material Safety Data Sheet (MSDS)"
                     disabled={downloadLoading}
@@ -1132,7 +1243,7 @@ export default function ProductPage() {
                   {/* Quality Standards Certifications */}
                   <SmartDownloadButton 
                     docPath={data.certifications?.qualityStandards}
-                    filename="Quality-Certifications.pdf"
+                    filename="Quality-Certifications"
                     type="documents"
                     label="Quality Standard Certifications"
                     disabled={downloadLoading}
@@ -1141,7 +1252,7 @@ export default function ProductPage() {
                   {/* NPS Marketing Approval */}
                   <SmartDownloadButton 
                     docPath={data.npsApproval}
-                    filename="NPS-Marketing-Approval.pdf"
+                    filename="NPS-Marketing-Approval"
                     type="documents"
                     label="NPS Marketing Approval"
                     disabled={downloadLoading}
