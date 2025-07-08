@@ -9,8 +9,20 @@ const ProductSelector = ({ products = [], onProductSelect, onRefresh }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh status
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // New useEffect to handle products array changes
+  useEffect(() => {
+    // If we're not refreshing and dropdown is open, keep it open when products change
+    if (!isRefreshing && isOpen && products.length > 0) {
+      // Focus search input again after products update
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [products.length, isRefreshing, isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -43,16 +55,18 @@ const ProductSelector = ({ products = [], onProductSelect, onRefresh }) => {
   };
 
   const handleAddProduct = () => {
-    setIsOpen(false);
+    // Don't close dropdown immediately - let the modal handle it
     openModal('add');
   };
 
   const handleRefresh = async () => {
     setIsLoading(true);
+    setIsRefreshing(true); // Set refreshing state
     if (onRefresh) {
       await onRefresh();
     }
     setIsLoading(false);
+    setIsRefreshing(false); // Clear refreshing state
   };
 
   const filteredProducts = products.filter((product) => {
