@@ -211,11 +211,11 @@ export default function ProductPage() {
         border: 1px solid ${color.border};
         color: ${color.text};
         padding: 16px 20px;
-        borderRadius: 8px;
+        border-radius: 8px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         z-index: 10000;
-        max-width: 350px;
-        animation: slideIn 0.3s ease-out;
+        max-width: 90vw;
+        width: 320px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       ">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -238,6 +238,15 @@ export default function ProductPage() {
         @keyframes slideOut {
           from { transform: translateX(0); opacity: 1; }
           to { transform: translateX(100%); opacity: 0; }
+        }
+        @media (max-width: 600px) {
+          div[style*="position: fixed"] {
+            top: 10px;
+            right: 10px;
+            width: 90vw;
+            max-width: 300px;
+            padding: 12px 16px;
+          }
         }
       </style>
     `;
@@ -499,27 +508,32 @@ export default function ProductPage() {
         backgroundColor: '#f8f9fa',
         border: '1px solid #dee2e6',
         borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '16px'
+        padding: '12px',
+        marginBottom: '16px',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          cursor: fileCount > 1 ? 'pointer' : 'default'
-        }} onClick={() => fileCount > 1 && toggleSection(label)}>
-          <div>
+          cursor: fileCount > 1 ? 'pointer' : 'default',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }} onClick={() => fileCount > 1 && toggleSectionatians}>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
             <div style={{
               fontWeight: '600',
               color: '#212529',
-              marginBottom: '4px'
+              marginBottom: '4px',
+              fontSize: 'clamp(14px, 4vw, 16px)'
             }}>
               {label}
               {fileCount > 1 && (
                 <span style={{
                   backgroundColor: '#007bff',
                   color: 'white',
-                  fontSize: '12px',
+                  fontSize: 'clamp(10px, 3vw, 12px)',
                   padding: '2px 6px',
                   borderRadius: '4px',
                   marginLeft: '8px',
@@ -530,12 +544,12 @@ export default function ProductPage() {
               )}
             </div>
             <div style={{
-              fontSize: '14px',
+              fontSize: 'clamp(12px, 3.5vw, 14px)',
               color: '#6c757d'
             }}>
               {fileCount > 1 
-                ? `Click to ${isExpanded ? 'collapse' : 'expand'} and view ${fileCount} documents`
-                : 'Click to download document to your device'
+                ? `Tap to ${isExpanded ? 'collapse' : 'expand'} and view ${fileCount} documents`
+                : 'Tap to download document to your device'
               }
             </div>
           </div>
@@ -547,16 +561,17 @@ export default function ProductPage() {
                 backgroundColor: downloadLoading[validPaths[0]] ? '#6c757d' : '#2d5a27',
                 color: 'white',
                 border: 'none',
-                padding: '12px 24px',
+                padding: '10px 20px',
                 borderRadius: '6px',
-                fontSize: '14px',
+                fontSize: 'clamp(12px, 3.5vw, 14px)',
                 fontWeight: '600',
                 cursor: downloadLoading[validPaths[0]] ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
-                boxShadow: downloadLoading[validPaths[0]] ? 'none' : '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: downloadLoading[validPaths[0]] ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
+                flex: '0 0 auto'
               }}
               onMouseOver={(e) => {
                 if (!downloadLoading[validPaths[0]]) {
@@ -591,8 +606,9 @@ export default function ProductPage() {
           )}
           {fileCount > 1 && (
             <span style={{
-              fontSize: '20px',
-              color: '#2d5a27'
+              fontSize: 'clamp(16px, 4vw, 20px)',
+              color: '#2d5a27',
+              flex: '0 0 auto'
             }}>
               {isExpanded ? '▲' : '▼'}
             </span>
@@ -600,8 +616,8 @@ export default function ProductPage() {
         </div>
         {fileCount > 1 && isExpanded && (
           <div style={{
-            marginTop: '16px',
-            padding: '12px',
+            marginTop: '12px',
+            padding: '10px',
             backgroundColor: 'white',
             borderRadius: '6px',
             border: '1px solid #dee2e6'
@@ -612,17 +628,27 @@ export default function ProductPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '8px 0',
-                borderBottom: index < validPaths.length - 1 ? '1px solid #eee' : 'none'
+                borderBottom: index < validPaths.length - 1 ? '1px solid #eee' : 'none',
+                flexWrap: 'wrap',
+                gap: '8px'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  flex: '1 1 auto',
+                  minWidth: '150px'
                 }}>
-                  <span style={{ color: '#2d5a27', fontSize: '18px' }}>
+                  <span style={{ color: '#2d5a27', fontSize: 'clamp(14px, 4vw, 16px)' }}>
                     {getFileExtensionFromPath(path) === 'pdf' ? '📄' : '📎'}
                   </span>
-                  <span style={{ fontSize: '14px', color: '#212529' }}>
+                  <span style={{ 
+                    fontSize: 'clamp(12px, 3.5vw, 14px)', 
+                    color: '#212529',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {getFilenameFromPath(path, filename, index)}
                   </span>
                 </div>
@@ -635,13 +661,14 @@ export default function ProductPage() {
                     border: 'none',
                     padding: '8px 16px',
                     borderRadius: '6px',
-                    fontSize: '13px',
+                    fontSize: 'clamp(11px, 3vw, 13px)',
                     fontWeight: '600',
                     cursor: downloadLoading[path] ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    flex: '0 0 auto'
                   }}
                   onMouseOver={(e) => {
                     if (!downloadLoading[path]) {
@@ -653,6 +680,16 @@ export default function ProductPage() {
                     if (!downloadLoading[path]) {
                       e.target.style.backgroundColor = '#2d5a27';
                       e.target.style.transform = 'translateY(0)';
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    if (!downloadLoading[path]) {
+                      e.target.style.backgroundColor = '#1e3f1a';
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (!downloadLoading[path]) {
+                      e.target.style.backgroundColor = '#2d5a27';
                     }
                   }}
                 >
@@ -675,6 +712,34 @@ export default function ProductPage() {
             ))}
           </div>
         )}
+        <style jsx>{`
+          @media (max-width: 600px) {
+            div[style*="background-color: #f8f9fa"] {
+              padding: 10px;
+            }
+            button {
+              padding: 8px 16px;
+              font-size: clamp(11px, 3vw, 13px);
+            }
+            div[style*="flex-wrap: wrap"] {
+              flex-direction: column;
+              align-items: stretch;
+            }
+            button[style*="flex: 0 0 auto"] {
+              width: 100%;
+              justify-content: center;
+            }
+          }
+          @media (min-width: 601px) and (max-width: 1024px) {
+            div[style*="background-color: #f8f9fa"] {
+              padding: 12px;
+            }
+            button {
+              padding: 9px 18px;
+              font-size: clamp(12px, 3vw, 14px);
+            }
+          }
+        `}</style>
       </div>
     );
   };
@@ -683,12 +748,13 @@ export default function ProductPage() {
     if (!ingredients || ingredients.length === 0) {
       return (
         <div style={{
-          padding: '20px',
+          padding: 'clamp(16px, 5vw, 20px)',
           backgroundColor: '#f8f9fa',
           borderRadius: '8px',
           border: '1px solid #dee2e6',
           textAlign: 'center',
-          color: '#6c757d'
+          color: '#6c757d',
+          fontSize: 'clamp(12px, 4vw, 14px)'
         }}>
           No ingredients information available
         </div>
@@ -706,9 +772,9 @@ export default function ProductPage() {
         <div style={{
           backgroundColor: '#2d5a27',
           color: 'white',
-          padding: '12px 16px',
+          padding: 'clamp(10px, 3vw, 12px) clamp(12px, 4vw, 16px)',
           fontWeight: 'bold',
-          fontSize: '16px'
+          fontSize: 'clamp(14px, 4vw, 16px)'
         }}>
           🧪 Ingredients Composition
         </div>
@@ -722,20 +788,22 @@ export default function ProductPage() {
               borderBottom: '2px solid #dee2e6'
             }}>
               <th style={{
-                padding: '12px 16px',
+                padding: 'clamp(10px, 3vw, 12px) clamp(12px, 4vw, 16px)',
                 textAlign: 'left',
                 fontWeight: '600',
                 color: '#495057',
-                borderRight: '1px solid #dee2e6'
+                borderRight: '1px solid #dee2e6',
+                fontSize: 'clamp(12px, 3.5vw, 14px)'
               }}>
                 Ingredient Name
               </th>
               <th style={{
-                padding: '12px 16px',
+                padding: 'clamp(10px, 3vw, 12px) clamp(12px, 4vw, 16px)',
                 textAlign: 'center',
                 fontWeight: '600',
                 color: '#495057',
-                width: '120px'
+                width: 'clamp(100px, 30vw, 120px)',
+                fontSize: 'clamp(12px, 3.5vw, 14px)'
               }}>
                 Percentage
               </th>
@@ -748,9 +816,10 @@ export default function ProductPage() {
                 backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
               }}>
                 <td style={{
-                  padding: '12px 16px',
+                  padding: 'clamp(10px, 3vw, 12px) clamp(12px, 4vw, 16px)',
                   borderRight: '1px solid #dee2e6',
-                  color: '#212529'
+                  color: '#212529',
+                  fontSize: 'clamp(12px, 3.5vw, 14px)'
                 }}>
                   <span style={{
                     fontWeight: '500'
@@ -759,9 +828,10 @@ export default function ProductPage() {
                   </span>
                 </td>
                 <td style={{
-                  padding: '12px 16px',
+                  padding: 'clamp(10px, 3vw, 12px) clamp(12px, 4vw, 16px)',
                   textAlign: 'center',
-                  color: '#495057'
+                  color: '#495057',
+                  fontSize: 'clamp(12px, 3.5vw, 14px)'
                 }}>
                   <span style={{
                     backgroundColor: '#e3f2fd',
@@ -769,7 +839,7 @@ export default function ProductPage() {
                     padding: '4px 8px',
                     borderRadius: '4px',
                     fontWeight: '600',
-                    fontSize: '14px'
+                    fontSize: 'clamp(11px, 3vw, 13px)'
                   }}>
                     {ingredient.percentage}
                   </span>
@@ -788,10 +858,12 @@ export default function ProductPage() {
         <div className={styles.pageLoadingContent}>
           <div className={styles.loadingLogo}>
             <div className={styles.logoIcon}>🧪</div>
-            <h2>FARMER'S FERTILIZER</h2>
+            <h2 style={{ fontSize: 'clamp(18px, 5vw, 24px)' }}>FARMER'S FERTILIZER</h2>
           </div>
           <div className={styles.loadingSpinner}></div>
-          <p className={styles.loadingText}>Loading product information...</p>
+          <p className={styles.loadingText} style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>
+            Loading product information...
+          </p>
           <div className={styles.loadingBar}>
             <div className={styles.loadingProgress}></div>
           </div>
@@ -804,22 +876,26 @@ export default function ProductPage() {
     return (
       <div className={styles.fullScreenNotFound}>
         <div className={styles.notFoundContent}>
-          <div className={styles.notFound404}>Error</div>
-          <div className={styles.notFoundIcon}>⚠️</div>
-          <h1 className={styles.notFoundTitle}>Unable to Load Product</h1>
-          <p className={styles.notFoundMessage}>{error}</p>
+          <div className={styles.notFound404} style={{ fontSize: 'clamp(48px, 10vw, 64px)' }}>Error</div>
+          <div className={styles.notFoundIcon} style={{ fontSize: 'clamp(32px, 8vw, 48px)' }}>⚠️</div>
+          <h1 className={styles.notFoundTitle} style={{ fontSize: 'clamp(20px, 6vw, 28px)' }}>
+            Unable to Load Product
+          </h1>
+          <p className={styles.notFoundMessage} style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>{error}</p>
           <div className={styles.notFoundHelp}>
-            <h3>Try Again?</h3>
-            <div className="mt-4 flex gap-4 justify-center">
+            <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>Try Again?</h3>
+            <div className="mt-4 flex gap-4 justify-center flex-wrap">
               <button
                 onClick={loadProductData}
                 className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', padding: 'clamp(8px, 2.5vw, 12px) clamp(16px, 4vw, 24px)' }}
               >
                 Retry
               </button>
               <button
                 onClick={() => window.history.back()}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', padding: 'clamp(8px, 2.5vw, 12px) clamp(16px, 4vw, 24px)' }}
               >
                 Go Back
               </button>
@@ -834,30 +910,36 @@ export default function ProductPage() {
     return (
       <div className={styles.fullScreenNotFound}>
         <div className={styles.notFoundContent}>
-          <div className={styles.notFound404}>404</div>
-          <div className={styles.notFoundIcon}>🔍</div>
-          <h1 className={styles.notFoundTitle}>Product Not Found</h1>
-          <p className={styles.notFoundMessage}>
+          <div className={styles.notFound404} style={{ fontSize: 'clamp(48px, 10vw, 64px)' }}>404</div>
+          <div className={styles.notFoundIcon} style={{ fontSize: 'clamp(32px, 8vw, 48px)' }}>🔍</div>
+          <h1 className={styles.notFoundTitle} style={{ fontSize: 'clamp(20px, 6vw, 28px)' }}>
+            Product Not Found
+          </h1>
+          <p className={styles.notFoundMessage} style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>
             Sorry, the product batch you're looking for doesn't exist or has been moved.
           </p>
           <div className={styles.notFoundHelp}>
-            <h3>Need Help?</h3>
-            <p>Check your QR code or contact our support team</p>
-            <div className={styles.contactInfo}>
+            <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>Need Help?</h3>
+            <p style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
+              Check your QR code or contact our support team
+            </p>
+            <div className={styles.contactInfo} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
               <span>📧 info@farmersfert.com</span>
               <span>📞 +94 557284040</span>
             </div>
           </div>
-          <div className="mt-6 flex gap-4 justify-center">
+          <div className="mt-6 flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => window.history.back()}
               className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', padding: 'clamp(8px, 2.5vw, 12px) clamp(16px, 4vw, 24px)' }}
             >
               Go Back
             </button>
             <button
               onClick={loadProductData}
               className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', padding: 'clamp(8px, 2.5vw, 12px) clamp(16px, 4vw, 24px)' }}
             >
               Retry
             </button>
@@ -875,10 +957,17 @@ export default function ProductPage() {
         <div className={styles.headerContent}>
           <div className={styles.headerInfo}>
             <div className={styles.logo}>
-              <Image src="/LOGO.png" width={250} height={200} alt="Farmer's Fertilizer Logo" priority />
+              <Image 
+                src="/LOGO.png" 
+                width={250} 
+                height={200} 
+                alt="Farmer's Fertilizer Logo" 
+                priority 
+                sizes="(max-width: 600px) 150px, 250px"
+              />
             </div>
             <div className={styles.headerDetails}>
-              <div className={styles.headerContact}>
+              <div className={styles.headerContact} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                 Telephone No:{' '}
                 {data.contact?.phones?.length > 0 ? data.contact.phones.join(' / ') : '+94 557284040'} | Web:{' '}
                 {data.contact?.website || 'www.farmersfert.com'}
@@ -888,7 +977,7 @@ export default function ProductPage() {
         </div>
       </header>
 
-      <div className={styles.container}>
+      <div className={styles.container} style={{ padding: 'clamp(16px, 5vw, 24px)' }}>
         <div className={styles.productImages}>
           <div className={styles.mainImage}>
             <div className={styles.mainImageContent}>
@@ -898,6 +987,8 @@ export default function ProductPage() {
                     src={getImageUrl(data.imagePath)}
                     alt={data.name}
                     className="w-full h-full object-cover rounded-lg"
+                    style={{ maxHeight: '400px' }}
+                    sizes="(max-width: 600px) 100vw, 50vw"
                     onError={(e) => {
                       console.log('Image load error, showing fallback');
                       e.target.style.display = 'none';
@@ -908,25 +999,49 @@ export default function ProductPage() {
                     }}
                   />
                   <div className="hidden w-full h-full flex flex-col items-center justify-center text-center">
-                    <div style={{ fontSize: '3rem' }}>🧪</div>
-                    <div style={{ fontSize: '1rem', marginTop: '1rem', color: '#2d5a27' }}>{data.name}</div>
+                    <div style={{ fontSize: 'clamp(24px, 8vw, 36px)' }}>🧪</div>
+                    <div style={{ fontSize: 'clamp(12px, 3.5vw, 16px)', marginTop: '1rem', color: '#2d5a27' }}>
+                      {data.name}
+                    </div>
                   </div>
                   {data.batchInfo.isExpired && (
-                    <div className={`${styles.expiredBadge} absolute top-4 right-4`}>EXPIRED</div>
+                    <div 
+                      className={`${styles.expiredBadge} absolute top-4 right-4`} 
+                      style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}
+                    >
+                      EXPIRED
+                    </div>
                   )}
                   {expiryStatus && expiryStatus.status === 'expiring' && (
-                    <div className={`${styles.expiredBadge} bg-orange-500 absolute top-4 right-4`}>
+                    <div 
+                      className={`${styles.expiredBadge} bg-orange-500 absolute top-4 right-4`} 
+                      style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}
+                    >
                       EXPIRING SOON
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full">
-                  <div style={{ fontSize: '3rem' }}>🧪</div>
-                  <div style={{ fontSize: '1rem', marginTop: '1rem', color: '#2d5a27' }}>{data.name}</div>
-                  {data.batchInfo.isExpired && <div className={styles.expiredBadge}>EXPIRED</div>}
+                  <div style={{ fontSize: 'clamp(24px, 8vw, 36px)' }}>🧪</div>
+                  <div style={{ fontSize: 'clamp(12px, 3.5vw, 16px)', marginTop: '1rem', color: '#2d5a27' }}>
+                    {data.name}
+                  </div>
+                  {data.batchInfo.isExpired && (
+                    <div 
+                      className={styles.expiredBadge} 
+                      style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}
+                    >
+                      EXPIRED
+                    </div>
+                  )}
                   {expiryStatus && expiryStatus.status === 'expiring' && (
-                    <div className={`${styles.expiredBadge} bg-orange-500`}>EXPIRING SOON</div>
+                    <div 
+                      className={`${styles.expiredBadge} bg-orange-500`} 
+                      style={{ fontSize: 'clamp(10px, 3vw, 12px)' }}
+                    >
+                      EXPIRING SOON
+                    </div>
                   )}
                 </div>
               )}
@@ -936,39 +1051,47 @@ export default function ProductPage() {
 
         <div className={styles.productInfo}>
           <div>
-            <h1 className={styles.productTitle}>{data.name}</h1>
-            {data.shortDescription && <p className={styles.productSubtitle}>{data.shortDescription}</p>}
+            <h1 className={styles.productTitle} style={{ fontSize: 'clamp(20px, 6vw, 28px)' }}>
+              {data.name}
+            </h1>
+            {data.shortDescription && (
+              <p className={styles.productSubtitle} style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>
+                {data.shortDescription}
+              </p>
+            )}
             {data.fullDescription && data.fullDescription !== data.shortDescription && (
               <div className={styles.productDescription}>
-                <p>{data.fullDescription}</p>
+                <p style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>{data.fullDescription}</p>
               </div>
             )}
           </div>
 
           <div className={styles.stockDetails}>
-            <h3 className={styles.sectionTitle}>Product Information</h3>
-            <div className={styles.detailRow}>
+            <h3 className={styles.sectionTitle} style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>
+              Product Information
+            </h3>
+            <div className={styles.detailRow} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
               <span className={styles.detailLabel}>Batch Number:</span>
               <span className={styles.batchHighlight}>{data.batchInfo.number}</span>
             </div>
             {data.batchInfo.sampleNo && (
-              <div className={styles.detailRow}>
+              <div className={styles.detailRow} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                 <span className={styles.detailLabel}>Sample Number:</span>
                 <span>{data.batchInfo.sampleNo}</span>
               </div>
             )}
-            <div className={styles.detailRow}>
+            <div className={styles.detailRow} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
               <span className={styles.detailLabel}>Manufacturing Date:</span>
               <span>{formatDate(data.batchInfo.manufacturingDate)}</span>
             </div>
-            <div className={styles.detailRow}>
+            <div className={styles.detailRow} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
               <span className={styles.detailLabel}>Expiry Date:</span>
               <span className={data.batchInfo.isExpired ? styles.expired : styles.valid}>
                 {formatDate(data.batchInfo.expiryDate)}
               </span>
             </div>
             {data.batchInfo.availablePackageSizes && data.batchInfo.availablePackageSizes.length > 0 && (
-              <div className={styles.detailRow}>
+              <div className={styles.detailRow} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                 <span className={styles.detailLabel}>Available Package Sizes:</span>
                 <span>{data.batchInfo.availablePackageSizes.join(', ')}</span>
               </div>
@@ -978,42 +1101,36 @@ export default function ProductPage() {
 
         <div className={styles.productDescription}>
           <div className={styles.descriptionContent}>
-            <div className={styles.tabs}>
-              <div
-                className={`${styles.tab} ${currentTab === 'composition' ? styles.active : ''}`}
-                onClick={() => changeTab('composition')}
-              >
-                Composition
-              </div>
-              <div
-                className={`${styles.tab} ${currentTab === 'application' ? styles.active : ''}`}
-                onClick={() => changeTab('application')}
-              >
-                Application
-              </div>
-              <div
-                className={`${styles.tab} ${currentTab === 'benefits' ? styles.active : ''}`}
-                onClick={() => changeTab('benefits')}
-              >
-                Advantages
-              </div>
-              <div
-                className={`${styles.tab} ${currentTab === 'safety' ? styles.active : ''}`}
-                onClick={() => changeTab('safety')}
-              >
-                Safety Instructions
-              </div>
+            <div className={styles.tabs} style={{ flexWrap: 'wrap', gap: '8px' }}>
+              {['composition', 'application', 'benefits', 'safety'].map((tab) => (
+                <div
+                  key={tab}
+                  className={`${styles.tab} ${currentTab === tab ? styles.active : ''}`}
+                  onClick={() => changeTab(tab)}
+                  style={{
+                    fontSize: 'clamp(12px, 3.5vw, 14px)',
+                    padding: 'clamp(8px, 2.5vw, 10px) clamp(16px, 4vw, 20px)',
+                    flex: '1 1 auto',
+                    minWidth: '80px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </div>
+              ))}
             </div>
 
             {currentTab === 'composition' && (
               <div className={styles.tabContent}>
-                <h3>🧪 {data.composition?.title || 'Composition'}</h3>
+                <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>
+                  🧪 {data.composition?.title || 'Composition'}
+                </h3>
                 
-                <div style={{ marginBottom: '24px' }}>
+                <div style={{ marginBottom: 'clamp(16px, 5vw, 24px)' }}>
                   <IngredientsTable ingredients={data.composition?.ingredients} />
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: 'clamp(12px, 4vw, 16px)' }}>
                   <SmartDownloadButton 
                     docPath={data.msds}
                     filename="MSDS"
@@ -1023,14 +1140,22 @@ export default function ProductPage() {
                 </div>
 
                 {data.batchInfo.isExpired && (
-                  <div className={styles.warningBox}>
+                  <div 
+                    className={styles.warningBox} 
+                    style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+                  >
                     ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used.
                   </div>
                 )}
                 {expiryStatus?.status === 'expiring' && (
                   <div
                     className={styles.warningBox}
-                    style={{ background: '#fff3cd', borderColor: '#ffeaa7', color: '#856404' }}
+                    style={{ 
+                      background: '#fff3cd', 
+                      borderColor: '#ffeaa7', 
+                      color: '#856404', 
+                      fontSize: 'clamp(12px, 3.5vw, 14px)' 
+                    }}
                   >
                     ⚠️ <strong>NOTICE:</strong> This batch is expiring soon. Use before{' '}
                     {formatDate(data.batchInfo.expiryDate)}.
@@ -1041,29 +1166,36 @@ export default function ProductPage() {
 
             {currentTab === 'application' && (
               <div className={styles.tabContent}>
-                <h3>📋 {data.application?.title || 'Application Instructions'}</h3>
+                <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>
+                  📋 {data.application?.title || 'Application Instructions'}
+                </h3>
                 {data.batchInfo.isExpired ? (
-                  <div className={styles.warningBox}>
+                  <div 
+                    className={styles.warningBox} 
+                    style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+                  >
                     ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used for agricultural
                     purposes. Please dispose of properly according to environmental regulations.
                   </div>
                 ) : (
                   <div className={styles.instructionsSection}>
                     {data.application?.instructions?.length > 0 ? (
-                      <ul className={styles.benefitsList}>
+                      <ul className={styles.benefitsList} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                         {data.application.instructions.map((instruction, index) => (
                           <li key={index}>{instruction}</li>
                         ))}
                       </ul>
                     ) : (
-                      <p>No application instructions available.</p>
+                      <p style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
+                        No application instructions available.
+                      </p>
                     )}
                   </div>
                 )}
                 <div className={styles.sectionHeader}>
-                  <h4>📞 Contact Information</h4>
+                  <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>📞 Contact Information</h4>
                 </div>
-                <div className={styles.contactCard}>
+                <div className={styles.contactCard} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                   <div className={styles.contactItem}>
                     <span className={styles.contactLabel}>📍 Address:</span>
                     <span>{data.contact?.address || 'Gonagodalla road, Pelwatte, Buttala.'}</span>
@@ -1088,11 +1220,15 @@ export default function ProductPage() {
                 {!data.batchInfo.isExpired && data.application?.recommendedCrops?.length > 0 && (
                   <>
                     <div className={styles.sectionHeader}>
-                      <h4>🌾 Recommended Crops</h4>
+                      <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>🌾 Recommended Crops</h4>
                     </div>
-                    <div className={styles.cropsStack}>
+                    <div className={styles.cropsStack} style={{ flexWrap: 'wrap', gap: '8px' }}>
                       {data.application.recommendedCrops.map((crop, index) => (
-                        <div key={index} className={styles.cropCard}>
+                        <div 
+                          key={index} 
+                          className={styles.cropCard} 
+                          style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+                        >
                           <span className={styles.cropIcon}>🌱</span>
                           <span className={styles.cropName}>{crop}</span>
                         </div>
@@ -1105,17 +1241,22 @@ export default function ProductPage() {
 
             {currentTab === 'benefits' && (
               <div className={styles.tabContent}>
-                <h3>✨ {data.composition?.title || 'Advantages'}</h3>
+                <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>
+                  ✨ {data.composition?.title || 'Advantages'}
+                </h3>
                 {data.batchInfo.isExpired ? (
-                  <div className={styles.warningBox}>
+                  <div 
+                    className={styles.warningBox} 
+                    style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+                  >
                     ⚠️ <strong>This batch has expired and should not be used</strong>
                   </div>
                 ) : (
                   <>
                     <div className={styles.sectionHeader}>
-                      <h4>🎯 Key Benefits</h4>
+                      <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>🎯 Key Benefits</h4>
                     </div>
-                    <ul className={styles.benefitsList}>
+                    <ul className={styles.benefitsList} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                       {data.composition?.advantages?.length > 0 ? (
                         data.composition.advantages.map((advantage, index) => (
                           <li key={index}>{advantage}</li>
@@ -1131,16 +1272,21 @@ export default function ProductPage() {
 
             {currentTab === 'safety' && (
               <div className={styles.tabContent}>
-                <h3>🛡️ {data.safety?.title || 'Safety Instructions'}</h3>
+                <h3 style={{ fontSize: 'clamp(16px, 4.5vw, 20px)' }}>
+                  🛡️ {data.safety?.title || 'Safety Instructions'}
+                </h3>
                 {data.batchInfo.isExpired ? (
                   <>
-                    <div className={styles.warningBox}>
+                    <div 
+                      className={styles.warningBox} 
+                      style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+                    >
                       ⚠️ <strong>EXPIRED BATCH - DO NOT USE</strong>
                     </div>
                     <div className={styles.sectionHeader}>
-                      <h4>🗑️ Disposal Instructions</h4>
+                      <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>🗑️ Disposal Instructions</h4>
                     </div>
-                    <ul className={styles.benefitsList}>
+                    <ul className={styles.benefitsList} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                       <li>Do not use this expired batch</li>
                       <li>Contact local environmental authorities for disposal guidelines</li>
                       <li>Do not pour down drains or dispose in regular waste</li>
@@ -1150,9 +1296,11 @@ export default function ProductPage() {
                 ) : (
                   <>
                     <div className={styles.sectionHeader}>
-                      <h4>🥽 {data.safety?.ppe?.title || 'Personal Protective Equipment (PPE):'}</h4>
+                      <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>
+                        🥽 {data.safety?.ppe?.title || 'Personal Protective Equipment (PPE):'}
+                      </h4>
                     </div>
-                    <ul className={styles.benefitsList}>
+                    <ul className={styles.benefitsList} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                       {data.safety?.ppe?.instructions?.length > 0 ? (
                         data.safety.ppe.instructions.map((instruction, index) => (
                           <li key={index}>{instruction}</li>
@@ -1162,9 +1310,11 @@ export default function ProductPage() {
                       )}
                     </ul>
                     <div className={styles.sectionHeader}>
-                      <h4>🧼 {data.safety?.hygiene?.title || 'Work Hygiene Practices:'}</h4>
+                      <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>
+                        🧼 {data.safety?.hygiene?.title || 'Work Hygiene Practices:'}
+                      </h4>
                     </div>
-                    <ul className={styles.benefitsList}>
+                    <ul className={styles.benefitsList} style={{ fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
                       {data.safety?.hygiene?.instructions?.length > 0 ? (
                         data.safety.hygiene.instructions.map((instruction, index) => (
                           <li key={index}>{instruction}</li>
@@ -1176,9 +1326,9 @@ export default function ProductPage() {
                   </>
                 )}
 
-                <div style={{ marginTop: '24px' }}>
+                <div style={{ marginTop: 'clamp(16px, 5vw, 24px)' }}>
                   <div className={styles.sectionHeader}>
-                    <h4>📋 Available Documents</h4>
+                    <h4 style={{ fontSize: 'clamp(14px, 4vw, 16px)' }}>📋 Available Documents</h4>
                   </div>
                   
                   <SmartDownloadButton 
@@ -1189,25 +1339,26 @@ export default function ProductPage() {
                   />
 
                   <SmartDownloadButton 
-                    docPath={data.npsApproval}
-                    filename="NPS-Marketing-Approval"
+                    docPath={data.nfsApproval}
+                    filename="NFS-Marketing-Approval"
                     type="documents"
-                    label="NPS Marketing Approval"
+                    label="NFS Marketing Approval"
                   />
 
                   {!isDocumentAvailable(data.certifications?.qualityStandards) && 
-                   !isDocumentAvailable(data.npsApproval) && (
+                   !isDocumentAvailable(data.nfsApproval) && (
                     <div style={{
-                      padding: '20px',
+                      padding: 'clamp(16px, 5vw, 20px)',
                       backgroundColor: '#f8f9fa',
                       borderRadius: '8px',
                       border: '1px solid #dee2e6',
                       textAlign: 'center',
-                      color: '#6c757d'
+                      color: '#6c757d',
+                      fontSize: 'clamp(12px, 3.5vw, 14px)'
                     }}>
-                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📄</div>
+                      <div style={{ fontSize: 'clamp(24px, 6vw, 32px)', marginBottom: '8px' }}>📄</div>
                       <div>No additional documents are available for download at this time.</div>
-                      <div style={{ fontSize: '14px', marginTop: '4px' }}>
+                      <div style={{ fontSize: 'clamp(12px, 3.5vw, 14px)', marginTop: '4px' }}>
                         This product meets all required quality standards and certifications.
                       </div>
                     </div>
@@ -1218,6 +1369,61 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+      <style jsx global>{`
+        .${styles.container} {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: clamp(16px, 5vw, 24px);
+        }
+        .${styles.productImages} {
+          width: 100%;
+          margin-bottom: clamp(16px, 5vw, 24px);
+        }
+        .${styles.mainImage} {
+          width: 100%;
+          max-height: 400px;
+          overflow: hidden;
+        }
+        .${styles.productInfo} {
+          width: 100%;
+          margin-bottom: clamp(16px, 5vw, 24px);
+        }
+        .${styles.productDescription} {
+          width: 100%;
+        }
+        .${styles.tabs} {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: clamp(12px, 4vw, 16px);
+        }
+        .${styles.tab} {
+          flex: 1 1 auto;
+          min-width: 80px;
+          text-align: center;
+          cursor: pointer;
+        }
+        @media (max-width: 600px) {
+          .${styles.container} {
+            padding: 12px;
+          }
+          .${styles.mainImage} {
+            max-height: 300px;
+          }
+          .${styles.tab} {
+            min-width: 70px;
+            padding: 6px 12px;
+          }
+        }
+        @media (min-width: 601px) and (max-width: 1024px) {
+          .${styles.container} {
+            padding: 16px;
+          }
+          .${styles.mainImage} {
+            max-height: 350px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
