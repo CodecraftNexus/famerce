@@ -10,19 +10,34 @@ const ProductSelector = ({ products = [], onProductSelect, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // New state for refresh status
+  const [prevProductsCount, setPrevProductsCount] = useState(0); // Track previous products count
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
+  const productsListRef = useRef(null); // Ref for products list container
 
   // New useEffect to handle products array changes
   useEffect(() => {
+    // Check if new products were added (not during refresh)
+    const newProductsAdded = !isRefreshing && products.length > prevProductsCount && isOpen;
+    
     // If we're not refreshing and dropdown is open, keep it open when products change
     if (!isRefreshing && isOpen && products.length > 0) {
       // Focus search input again after products update
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
+      
+      // If new products were added, scroll to bottom to show the latest product
+      if (newProductsAdded && productsListRef.current) {
+        setTimeout(() => {
+          productsListRef.current.scrollTop = productsListRef.current.scrollHeight;
+        }, 150);
+      }
     }
-  }, [products.length, isRefreshing, isOpen]);
+    
+    // Update previous count
+    setPrevProductsCount(products.length);
+  }, [products.length, isRefreshing, isOpen, prevProductsCount]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -240,14 +255,22 @@ const ProductSelector = ({ products = [], onProductSelect, onRefresh }) => {
           </div>
 
           {/* Products List */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto scroll-smooth" ref={productsListRef}>
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <button
-                  key={product.productId || product.id}
-                  onClick={() => selectProduct(product)}
-                  className="w-full p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 last:border-b-0 group text-left"
-                >
+              filteredProducts.map((product, index) => {
+                const isLastProduct = index === filteredProducts.length - 1;
+                const isNewProduct = !isRefreshing && products.length > prevProductsCount && isLastProduct;
+                
+                return (
+                  <button
+                    key={product.productId || product.id}
+                    onClick={() => selectProduct(product)}
+                    className={`w-full p-4 transition-all duration-200 border-b border-gray-100 last:border-b-0 group text-left ${
+                      isNewProduct 
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 animate-pulse' 
+                        : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50'
+                    }`}
+                  >
                   <div className="flex gap-4">
                     {/* Product Image */}
                     <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-200 border border-blue-200 group-hover:border-blue-300 transition-all duration-200 shadow-sm">
@@ -332,7 +355,7 @@ const ProductSelector = ({ products = [], onProductSelect, onRefresh }) => {
                     </div>
                   </div>
                 </button>
-              ))
+              )}
             ) : (
               <div className="p-8 text-center">
                 <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
