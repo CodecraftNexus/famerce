@@ -7,7 +7,7 @@ import styles from '../../styles/view.module.css';
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.farmersferts.com';
-const FLASK_API_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || 'http://localhost:5000';
+const FLASK_API_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || 'https://filedownload-production.up.railway.app';
 
 export default function ProductPage() {
   const params = useParams();
