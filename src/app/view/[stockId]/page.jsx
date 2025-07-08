@@ -143,7 +143,7 @@ export default function ProductPage() {
     if (cleanPath.startsWith('https://res.cloudinary.com/')) {
       const urlParts = cleanPath.split('/');
       let filename = urlParts[urlParts.length - 1];
-      filename = filename.split('🗂️ filename = ', filename);
+      filename = filename.split('🗂️ filename = ')[1] || filename;
       filename = filename.split('?')[0];
       return filename;
     }
@@ -171,7 +171,7 @@ export default function ProductPage() {
   const getFilenameFromPath = (path, defaultName = 'document', index = 0) => {
     try {
       const cleanPath = path.trim();
-      let filename = extractFileName(cleanPath);
+      let filename = extractFileName(cleanPath, index);
       
       if (filename && filename.includes('.')) {
         if (index > 0) {
@@ -187,7 +187,7 @@ export default function ProductPage() {
       const suffix = index > 0 ? `_${index + 1}` : '';
       return `${defaultName}${suffix}.${extension}`;
     } catch (error) {
-      console.log('Filename error:', filename);
+      console.log('Filename error:', error);
       const suffix = index > 0 ? `_${index + 1}` : '';
       return `${defaultName}${suffix}.pdf`;
     }
@@ -210,9 +210,9 @@ export default function ProductPage() {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: ${colors.bg};
-        border: 1px solid ${colors.border};
-        color: ${colors.text};
+        background: ${color.bg};
+        border: 1px solid ${color.border};
+        color: ${color.text};
         padding: 16px 20px;
         border-radius: 8px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.1);
@@ -223,7 +223,7 @@ export default function ProductPage() {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       ">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 18px; flex-shrink: 0;">${colors.icon}</span>
+          <span style="font-size: 18px; flex-shrink: 0;">${color.icon}</span>
           <div style="flex: 1;">
             <div style="font-size: 14px; font-weight: 500; margin-bottom: 2px;">
               ${type === 'downloading' ? 'Download Started' : 
@@ -263,10 +263,10 @@ export default function ProductPage() {
   };
 
   const downloadSingleFile = async (filePath, defaultFilename, index = 0) => {
+    const filename = getFilenameFromPath(filePath, defaultFilename, index);
     console.log(`⬇️ Downloading file ${index + 1}:`, filename);
     
     try {
-      const filename = getFilenameFromPath(filePath, defaultFilename, index);
       const encodedPath = encodeURIComponent(filePath);
       const downloadUrl = `${FLASK_API_URL}/download/${encodedPath}`;
       
@@ -326,7 +326,7 @@ export default function ProductPage() {
     } catch (error) {
       console.error('❌ Download error:', error);
       showDownloadNotification(`Failed to download ${getFilenameFromPath(filePath, defaultFilename, index)}: ${error.message}`, 'error');
-      } finally {
+    } finally {
       setDownloadLoading(prev => ({ ...prev, [filePath]: false }));
     }
   };
@@ -389,7 +389,7 @@ export default function ProductPage() {
                 }}>
                   {fileCount} files
                 </span>
-              })}
+              )}
             </div>
             <div style={{
               fontSize: '14px',
@@ -418,8 +418,8 @@ export default function ProductPage() {
                 alignItems: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
-                boxShadow: downloadLoading[0validPaths] ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
-                flexShrink: '1 0 auto',
+                boxShadow: downloadLoading[validPaths[0]] ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
+                flexShrink: 0,
                 minWidth: '120px'
               }}
               onMouseOver={(e) => {
@@ -457,7 +457,7 @@ export default function ProductPage() {
             <span style={{
               fontSize: '20px',
               color: '#2d5a27',
-              flexShrink: '0'
+              flexShrink: 0
             }}>
               {isExpanded ? '▲' : '▼'}
             </span>
@@ -478,7 +478,7 @@ export default function ProductPage() {
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 padding: '10px 0',
-                borderBottom: 'index < validPaths.length - 1' ? '1px solid #eee' : 'none',
+                borderBottom: index < validPaths.length - 1 ? '1px solid #eee' : 'none',
                 gap: '8px'
               }}>
                 <div style={{
@@ -511,7 +511,7 @@ export default function ProductPage() {
                     alignItems: 'center',
                     gap: '6px',
                     transition: 'all 0.2s ease',
-                    flexShrink: '0',
+                    flexShrink: 0,
                     minWidth: '100px'
                   }}
                   onMouseOver={(e) => {
@@ -541,13 +541,13 @@ export default function ProductPage() {
                       <span>Download</span>
                     </>
                   )}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const IngredientsTable = ({ ingredients }) => {
@@ -646,659 +646,660 @@ export default function ProductPage() {
                     color: '#1976d2',
                     padding: '4px 8px',
                     borderRadius: '4px',
-                    fontWeight: '600px',
+                    fontWeight: '600',
                     fontSize: 'clamp(12px, 13px, 14px)'
                   }}>
                     {ingredient.percentage}
                   </span>
                 </td>
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    };
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
-    if (loading) {
-      return (
-        <div className={styles.pageLoadingContainer}>
-          <div className={styles.pageLoadingContent}>
-            <div className={styles.loadingLogo}>
-              <div className={styles.logoIcon}>🧪</div>
-              <h2>FARMER'S FERTILIZER</h2>
-            </div>
-            <div className={styles.loadingSpinner}></div>
-            <p className={styles.loadingText}>Loading product information...</p>
-            <div className={styles.loadingBar}>
-              <div className={styles.loadingProgress}></div>
-            </div>
+  if (loading) {
+    return (
+      <div className={styles.pageLoadingContainer}>
+        <div className={styles.pageLoadingContent}>
+          <div className={styles.loadingLogo}>
+            <div className={styles.logoIcon}>🧪</div>
+            <h2>FARMER'S FERTILIZER</h2>
+          </div>
+          <div className={styles.loadingSpinner}></div>
+          <p className={styles.loadingText}>Loading product information...</p>
+          <div className={styles.loadingBar}>
+            <div className={styles.loadingProgress}></div>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (error) {
-      return (
-        <div className={styles.fullScreenNotFound}>
-          <div className={styles.notFoundContent}>
-            <div className={styles.notFound404}>Error</div>
-            <div className={styles.notFoundIcon}>⚠️</div>
-            <h1 className={styles.notFoundTitle}>Unable to Load Product</h1>
-            <p className={styles.notFoundMessage}>{error}</p>
-            <div className={styles.notFoundHelp}>
-              <h3>Try Again?</h3>
-              <div className="mt-4 flex gap-4 justify-center flex-wrap">
-                <button
-                  onClick={loadProductData}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                >
-                  Retry
-                </button>
-                <button
-                  onClick={() => window.history.back()}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover-bg-gray-700 transition-colors text-sm font-medium"
-                >
-                  Go Back
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (notFound || !data) {
-      return (
-        <div className={styles.fullScreenNotFound}>
-          <div className={styles.notFoundContent}>
-            <div className={styles.notFound404}>404</div>
-            <div className={styles.notFoundIcon}>🔍</div>
-            <h1 className={styles.notFoundTitle}>Product Not Found</h1>
-            <p className={styles.notFoundMessage}>
-              Sorry, the product batch you're looking for doesn't exist or has been moved.
-            </p>
-            <div className={styles.notFoundHelp}>
-              <h3>Need Help?</h3>
-              <p>Check your QR code or contact our support team</p>
-              <div className={styles.contactInfo}>
-                <span>📧 info@farmersfert.com</span>
-                <span>📞 +94 557284040</span>
-              </div>
-            </div>
-            <div className="mt-6 flex gap-4 justify-center flex-wrap">
-              <button
-                onClick={() => window.history.back()}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-              >
-                Go Back
-              </button>
+  if (error) {
+    return (
+      <div className={styles.fullScreenNotFound}>
+        <div className={styles.notFoundContent}>
+          <div className={styles.notFound404}>Error</div>
+          <div className={styles.notFoundIcon}>⚠️</div>
+          <h1 className={styles.notFoundTitle}>Unable to Load Product</h1>
+          <p className={styles.notFoundMessage}>{error}</p>
+          <div className={styles.notFoundHelp}>
+            <h3>Try Again?</h3>
+            <div className="mt-4 flex gap-4 justify-center flex-wrap">
               <button
                 onClick={loadProductData}
-                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
               >
                 Retry
               </button>
+              <button
+                onClick={() => window.history.back()}
+                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+              >
+                Go Back
+              </button>
             </div>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    const expiryStatus = getExpiryStatus();
-
+  if (notFound || !data) {
     return (
-      <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
-        <header className={styles.header}>
-          <div className={styles.headerContent} style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 16px'
+      <div className={styles.fullScreenNotFound}>
+        <div className={styles.notFoundContent}>
+          <div className={styles.notFound404}>404</div>
+          <div className={styles.notFoundIcon}>🔍</div>
+          <h1 className={styles.notFoundTitle}>Product Not Found</h1>
+          <p className={styles.notFoundMessage}>
+            Sorry, the product batch you're looking for doesn't exist or has been moved.
+          </p>
+          <div className={styles.notFoundHelp}>
+            <h3>Need Help?</h3>
+            <p>Check your QR code or contact our support team</p>
+            <div className={styles.contactInfo}>
+              <span>📧 info@farmersfert.com</span>
+              <span>📞 +94 557284040</span>
+            </div>
+          </div>
+          <div className="mt-6 flex gap-4 justify-center flex-wrap">
+            <button
+              onClick={() => window.history.back()}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+            >
+              Go Back
+            </button>
+            <button
+              onClick={loadProductData}
+              className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const expiryStatus = getExpiryStatus();
+
+  return (
+    <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+      <header className={styles.header}>
+        <div className={styles.headerContent} style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 16px'
+        }}>
+          <div className={styles.headerInfo} style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px'
           }}>
-            <div className={styles.headerInfo} style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '16px'
-            }}>
-              <div className={styles.logo}>
-                <Image
-                  src="/LOGO.png"
-                  width={200}
-                  height={160}
-                  alt="Farmer's Fertilizer Logo"
-                  priority
-                  style={{ width: 'auto', height: 'auto', maxWidth: '100%' }}
-                />
-              </div>
-              <div className={styles.headerDetails} style={{ flex: '1', minWidth: '200px' }}>
-                <div className={styles.headerContact} style={{
-                  fontSize: 'clamp(12px, 14px, 1.5vw)',
-                  wordBreak: 'break-word'
-                }}>
-                  Telephone No:{' '}
-                  {data.contact?.phones?.length > 0 ? data.contact.phones.join(' / ') : '+94 557284040'} | Web:{' '}
-                  {data.contact?.website || 'www.farmersfert.com'}
-                </div>
+            <div className={styles.logo}>
+              <Image
+                src="/LOGO.png"
+                width={200}
+                height={160}
+                alt="Farmer's Fertilizer Logo"
+                priority
+                style={{ width: 'auto', height: 'auto', maxWidth: '100%' }}
+              />
+            </div>
+            <div className={styles.headerDetails} style={{ flex: '1', minWidth: '200px' }}>
+              <div className={styles.headerContact} style={{
+                fontSize: 'clamp(12px, 14px, 1.5vw)',
+                wordBreak: 'break-word'
+              }}>
+                Telephone No:{' '}
+                {data.contact?.phones?.length > 0 ? data.contact.phones.join(' / ') : '+94 557284040'} | Web:{' '}
+                {data.contact?.website || 'www.farmersfert.com'}
               </div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className={styles.container} style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px'
-        }}>
-          <div className={styles.productImages} style={{ width: '100%' }}>
-            <div className={styles.mainImage} style={{
-              position: 'relative',
-              width: '100%',
-              aspectRatio: '4 / 3',
-              overflow: 'hidden',
-              borderRadius: '12px'
-            }}>
-              <div className={styles.mainImageContent}>
-                {data.imagePath ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={getImageUrl(data.imagePath)}
-                      alt={data.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '12px'
-                      }}
-                      onError={(e) => {
-                        console.log('Image load error, showing fallback');
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                      onLoad={() => console.log('Image loaded successfully')}
-                    />
-                    <div style={{
-                      display: 'none',
+      <div className={styles.container} style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px'
+      }}>
+        <div className={styles.productImages} style={{ width: '100%' }}>
+          <div className={styles.mainImage} style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '4 / 3',
+            overflow: 'hidden',
+            borderRadius: '12px'
+          }}>
+            <div className={styles.mainImageContent}>
+              {data.imagePath ? (
+                <div className="relative w-full h-full">
+                  <img
+                    src={getImageUrl(data.imagePath)}
+                    alt={data.name}
+                    style={{
                       width: '100%',
                       height: '100%',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textAlign: 'center',
-                      backgroundColor: '#f8f9fa'
-                    }}>
-                      <div style={{ fontSize: 'clamp(2rem, 3vw, 2.5rem)' }}>🧪</div>
-                      <div style={{
-                        fontSize: 'clamp(0, 14px, 1vw, 16px)',
-                        marginTop: '1rem',
-                        color: '#2d5a27'
-                      }}>{data.name}</div>
-                    </div>
-                    {data.batchInfo.isExpired && (
-                      <div className={`${styles.expiredBadge} absolute top-4 right-4`} style={{
-                        fontSize: 'clamp(12px, 14px, 1.5vw)'
-                      }}>
-                        EXPIRED
-                      </div>
-                    )}
-                    {expiryStatus && expiryStatus.status === 'expiring' && (
-                      <div className={`${styles.expiredBadge} bg-orange-600 absolute top-4 right-4`} style={{
-                        fontSize: 'clamp(12px, 14px, 1.5vw)'
-                      }}>
-                        EXPIRED SOON
-                      </div>
-                    ))}
-                  </div>
-                ) : (
+                      objectFit: 'cover',
+                      borderRadius: '12px'
+                    }}
+                    onError={(e) => {
+                      console.log('Image load error, showing fallback');
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                    onLoad={() => console.log('Image loaded successfully')}
+                  />
                   <div style={{
-                    display: 'flex',
+                    display: 'none',
+                    width: '100%',
+                    height: '100%',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    height: '100%',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '12px'
+                    textAlign: 'center',
+                    backgroundColor: '#f8f9fa'
                   }}>
-                    <div style={{ fontSize: 'clamp(2rem, 3vw, 2.5rem' }}>🧪</div>
-                      <div style={{
-                        fontSize: 'clamp(14px, 16px, 1vw)',
-                        marginTop: '1rem',
-                        color: '#2d5a27'
-                      }}>{data.name}</div>
-                      {data.batchInfo.isExpired && (
-                        <div className={styles.expiredBadge} style={{
-                          fontSize: 'clamp(12px, 14px, 1.5vw)'
+                    <div style={{ fontSize: 'clamp(2rem, 3vw, 2.5rem)' }}>🧪</div>
+                    <div style={{
+                      fontSize: 'clamp(14px, 16px, 1vw)',
+                      marginTop: '1rem',
+                      color: '#2d5a27'
+                    }}>{data.name}</div>
+                  </div>
+                  {data.batchInfo.isExpired && (
+                    <div className={`${styles.expiredBadge} absolute top-4 right-4`} style={{
+                      fontSize: 'clamp(12px, 14px, 1.5vw)'
+                    }}>
+                      EXPIRED
+                    </div>
+                  )}
+                  {expiryStatus && expiryStatus.status === 'expiring' && (
+                    <div className={`${styles.expiredBadge} bg-orange-600 absolute top-4 right-4`} style={{
+                      fontSize: 'clamp(12px, 14px, 1.5vw)'
+                    }}>
+                      EXPIRED SOON
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '12px'
+                }}>
+                  <div style={{ fontSize: 'clamp(2rem, 3vw, 2.5rem)' }}>🧪</div>
+                  <div style={{
+                    fontSize: 'clamp(14px, 16px, 1vw)',
+                    marginTop: '1rem',
+                    color: '#2d5a27'
+                  }}>{data.name}</div>
+                  {data.batchInfo.isExpired && (
+                    <div className={styles.expiredBadge} style={{
+                      fontSize: 'clamp(12px, 14px, 1.5vw)'
+                    }}>
+                      EXPIRED
+                    </div>
+                  )}
+                  {expiryStatus && expiryStatus.status === 'expiring' && (
+                    <div className={`${styles.expiredBadge} bg-orange-600`} style={{
+                      fontSize: 'clamp(12px, 14px, 1.5vw)'
+                    }}>
+                      EXPIRING SOON
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.productInfo} style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div>
+            <h1 className={styles.productTitle} style={{
+              fontSize: 'clamp(20px, 28px, 3vw)',
+              wordBreak: 'break-word'
+            }}>{data.name}</h1>
+            {data.shortDescription && (
+              <p className={styles.productSubtitle} style={{
+                fontSize: 'clamp(14px, 16px, 1.8vw)'
+              }}>{data.shortDescription}</p>
+            )}
+            {data.fullDescription && data.fullDescription !== data.shortDescription && (
+              <div className={styles.productDescription}>
+                <p style={{ fontSize: 'clamp(13px, 15px, 1.6vw)' }}>{data.fullDescription}</p>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.stockDetails} style={{
+            backgroundColor: '#f8f9fa',
+            padding: '16px',
+            borderRadius: '10px',
+            border: '1px solid #dee2e6'
+          }}>
+            <h3 className={styles.sectionTitle} style={{
+              fontSize: 'clamp(16px, 18px, 2vw)',
+              marginBottom: '12px'
+            }}>Product Information</h3>
+            <div className={styles.detailRow} style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                Batch Number:
+              </span>
+              <span className={styles.batchHighlight} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                {data.batchInfo.number}
+              </span>
+            </div>
+            {data.batchInfo.sampleNo && (
+              <div className={styles.detailRow} style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '8px'
+              }}>
+                <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                  Sample Number:
+                </span>
+                <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>{data.batchInfo.sampleNo}</span>
+              </div>
+            )}
+            <div className={styles.detailRow} style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                Manufacturing Date:
+              </span>
+              <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                {formatDate(data.batchInfo.manufacturingDate)}
+              </span>
+            </div>
+            <div className={styles.detailRow} style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                Expiry Date:
+              </span>
+              <span className={data.batchInfo.isExpired ? styles.expired : styles.valid} style={{
+                fontSize: 'clamp(13px, 14px, 1.5vw)'
+              }}>
+                {formatDate(data.batchInfo.expiryDate)}
+              </span>
+            </div>
+            {data.batchInfo.availablePackageSizes && data.batchInfo.availablePackageSizes.length > 0 && (
+              <div className={styles.detailRow} style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '8px'
+              }}>
+                <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                  Available Package Sizes:
+                </span>
+                <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                  {data.batchInfo.availablePackageSizes.join(', ')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.productDescription} style={{ width: '100%' }}>
+          <div className={styles.descriptionContent}>
+            <div className={styles.tabs} style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '16px'
+            }}>
+              {['composition', 'application', 'benefits', 'safety'].map((tab) => (
+                <div
+                  key={tab}
+                  className={`${styles.tab} ${currentTab === tab ? styles.active : ''}`}
+                  onClick={() => changeTab(tab)}
+                  style={{
+                    padding: '10px 16px',
+                    fontSize: 'clamp(13px, 14px, 1.5vw)',
+                    flex: '1 1 auto',
+                    minWidth: '100px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </div>
+              ))}
+            </div>
+
+            {currentTab === 'composition' && (
+              <div className={styles.tabContent} style={{ padding: '16px 0' }}>
+                <h3 style={{
+                  fontSize: 'clamp(16px, 18px, 2vw)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🧪 {data.composition?.title || 'Composition'}
+                </h3>
+                
+                <div style={{ marginBottom: '24px' }}>
+                  <IngredientsTable ingredients={data.composition?.ingredients} />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <SmartDownloadButton 
+                    docPath={data.msds}
+                    filename="MSDS"
+                    type="documents"
+                    label="Material Safety Data Sheet (MSDS)"
+                  />
+                </div>
+
+                {data.batchInfo.isExpired && (
+                  <div className={styles.warningBox} style={{
+                    fontSize: 'clamp(13px, 14px, 1.5vw)'
+                  }}>
+                    ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used.
+                  </div>
+                )}
+                {expiryStatus?.status === 'expiring' && (
+                  <div
+                    className={styles.warningBox}
+                    style={{
+                      background: '#fff3cd',
+                      borderColor: '#ffeaa7',
+                      color: '#856404',
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}
+                  >
+                    ⚠️ <strong>NOTICE:</strong> This batch is expiring soon. Use before{' '}
+                    {formatDate(data.batchInfo.expiryDate)}.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentTab === 'application' && (
+              <div className={styles.tabContent} style={{ padding: '16px 0' }}>
+                <h3 style={{
+                  fontSize: 'clamp(16px, 18px, 2vw)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  📋 {data.application?.title || 'Application Instructions'}
+                </h3>
+                {data.batchInfo.isExpired ? (
+                  <div className={styles.warningBox} style={{
+                    fontSize: 'clamp(13px, 14px, 1.5vw)'
+                  }}>
+                    ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used for agricultural
+                    purposes. Please dispose properly according to environmental regulations.
+                  </div>
+                ) : (
+                  <div className={styles.instructionsSection}>
+                    {data.application?.instructions?.length > 0 ? (
+                      <ul className={styles.benefitsList} style={{
+                        fontSize: 'clamp(13px, 14px, 1.5vw)'
+                      }}>
+                        {data.application.instructions.map((instruction, index) => (
+                          <li key={index}>{instruction}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
+                        No application instructions available.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className={styles.sectionHeader}>
+                  <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>📞 Contact Information</h4>
+                </div>
+                <div className={styles.contactCard} style={{
+                  padding: '16px',
+                  fontSize: 'clamp(13px, 14px, 1.5vw)'
+                }}>
+                  <div className={styles.contactItem}>
+                    <span className={styles.contactLabel}>📍 Address:</span>
+                    <span>{data.contact?.name || 'Gonagodalla road, Pelwatta, Buttala.'}</span>
+                  </div>
+                  <div className={styles.contactItem}>
+                    <span className={styles.contactLabel}>📞 Phone:</span>
+                    <span>
+                      {data.contact?.phones?.length > 0
+                        ? data.contact.phones.join(' / ')
+                        : '+94 557284040'}
+                    </span>
+                  </div>
+                  <div className={styles.contactItem}>
+                    <span className={styles.contactLabel}>✉️ Email:</span>
+                    <span>{data.contact?.email || 'info@farmersfert.com'}</span>
+                  </div>
+                  <div className={styles.contactItem}>
+                    <span className={styles.contactLabel}>🌐 Website:</span>
+                    <span>{data.contact?.website || 'www.farmersfert.com'}</span>
+                  </div>
+                </div>
+                {!data.batchInfo.isExpired && data.application?.recommendedCrops?.length > 0 && (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🌾 Recommended Crops</h4>
+                    </div>
+                    <div className={styles.cropsStack} style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      {data.application.recommendedCrops.map((crop, index) => (
+                        <div key={index} className={styles.cropCard} style={{
+                          fontSize: 'clamp(13px, 14px, 1.5vw)'
                         }}>
-                          EXPIRED
+                          <span className={styles.cropIcon}>🌱</span>
+                          <span className={styles.cropName}>{crop}</span>
                         </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {currentTab === 'benefits' && (
+              <div className={styles.tabContent} style={{ padding: '16px 0' }}>
+                <h3 style={{
+                  fontSize: 'clamp(16px, 18px, 2vw)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  ✨ {data.composition?.title || 'Advantages'}
+                </h3>
+                {data.batchInfo.isExpired ? (
+                  <div className={styles.warningBox} style={{
+                    fontSize: 'clamp(13px, 14px, 1.5vw)'
+                  }}>
+                    ⚠️ This batch has expired and should not be used
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🎯 Key Benefits</h4>
+                    </div>
+                    <ul className={styles.benefitsList} style={{
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      {data.composition?.advantages?.length > 0 ? (
+                        data.composition.advantages.map((advantage, index) => (
+                          <li key={index}>{advantage}</li>
+                        ))
+                      ) : (
+                        <li>No advantages information available</li>
                       )}
-                      {expiryStatus && expiryStatus.status === 'expiring' && (
-                        <div className={`${styles.expiredBadge} bg-orange-600`} style={{
-                          fontSize: 'clamp(12px, 14px, 1.5vw)'
-                        }}>
-                          EXPIRING SOON
-                        </div>
-                      })}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
+
+            {currentTab === 'safety' && (
+              <div className={styles.tabContent} style={{ padding: '16px 0' }}>
+                <h3 style={{
+                  fontSize: 'clamp(16px, 18px, 2vw)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🛡️ {data.safety?.title || 'Safety Instructions'}
+                </h3>
+                {data.batchInfo.isExpired ? (
+                  <>
+                    <div className={styles.warningBox} style={{
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      ❌ <strong>EXPIRED BATCH - DO NOT USE</strong>
+                    </div>
+                    <div className={styles.sectionHeader}>
+                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🗑️ Disposal Instructions</h4>
+                    </div>
+                    <ul className={styles.benefitsList} style={{
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      <li>Do not use this expired batch</li>
+                      <li>Contact local environmental authorities for disposal guidelines</li>
+                      <li>Do not pour down drains or dispose in regular waste</li>
+                      <li>Contact manufacturer for safe disposal procedures</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>
+                        🥽 {data.safety?.ppe?.title || 'Personal Protective Equipment (PPE):'}
+                      </h4>
+                    </div>
+                    <ul className={styles.benefitsList} style={{
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      {data.safety?.ppe?.instructions?.length > 0 ? (
+                        data.safety.ppe.instructions.map((instruction, index) => (
+                          <li key={index}>{instruction}</li>
+                        ))
+                      ) : (
+                        <li>No PPE instructions available</li>
+                      )}
+                    </ul>
+                    <div className={styles.sectionHeader}>
+                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>
+                        🧼 {data.safety?.hygiene?.title || 'Work Hygiene Practices:'}
+                      </h4>
+                    </div>
+                    <ul className={styles.benefitsList} style={{
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      {data.safety?.hygiene?.instructions?.length > 0 ? (
+                        data.safety.hygiene.instructions.map((instruction, index) => (
+                          <li key={index}>{instruction}</li>
+                        ))
+                      ) : (
+                        <li>No hygiene instructions available</li>
+                      )}
+                    </ul>
+                  </>
+                )}
+
+                <div style={{ marginTop: '24px' }}>
+                  <div className={styles.sectionHeader}>
+                    <h4 style={{ fontSize: 'clamp(16px, 18px, 2vw)' }}>📋 Available Documents</h4>
+                  </div>
+                  
+                  <SmartDownloadButton 
+                    docPath={data.certifications?.qualityStandards}
+                    filename="Quality-Certifications"
+                    type="documents"
+                    label="Quality Standard Certifications"
+                  />
+
+                  <SmartDownloadButton 
+                    docPath={data.npsApproval}
+                    filename="NPS-Marketing-Approval"
+                    type="documents"
+                    label="NPS Marketing Approval"
+                  />
+
+                  {!isDocumentAvailable(data.certifications?.qualityStandards) && 
+                   !isDocumentAvailable(data.npsApproval) && (
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '10px',
+                      border: '1px solid #dee2e6',
+                      textAlign: 'center',
+                      color: '#6c757d',
+                      fontSize: 'clamp(13px, 14px, 1.5vw)'
+                    }}>
+                      <div style={{ fontSize: 'clamp(1.5rem, 2rem, 2.5vw)', marginBottom: '8px' }}>📄</div>
+                      <div>No additional documents are available for download at this time.</div>
+                      <div style={{ fontSize: 'clamp(12px, 13px, 1.4vw)', marginTop: '4px' }}>
+                        This product meets all required quality standards and certifications.
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-
-            <div className={styles.productInfo} style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
-            }}>
-              <div>
-                <h1 className={styles.productTitle} style={{
-                  fontSize: 'clamp(20px, 28px, 3vw)',
-                  wordBreak: 'break-word'
-                }}>{data.name}</h1>
-                {data.shortDescription && (
-                  <p className={styles.productSubtitle} style={{
-                    fontSize: 'clamp(14px, 16px, 1.8vw)'
-                  }}>{data.shortDescription}</p>
-                )}
-                {data.fullDescription && data.fullDescription !== data.shortDescription && (
-                  <div className={styles.productDescription}>
-                    <p style={{ fontSize: 'clamp(13px, 15px, 1.6vw)' }}>{data.fullDescription}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.stockDetails} style={{
-                backgroundColor: '#f8f9fa',
-                padding: '16px',
-                borderRadius: '10px',
-                border: '1px solid #dee2e6'
-              }}>
-                <h3 className={styles.sectionTitle} style={{
-                  fontSize: 'clamp(16px, 18px, 2vw)',
-                  marginBottom: '12px'
-                }}>Product Information</h3>
-                <div className={styles.detailRow} style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  marginBottom: '8px'
-                }}>
-                  <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                    Batch Number:
-                  </span>
-                  <span className={styles.batchHighlight} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                    {data.batchInfo.number}
-                  </span>
-                </div>
-                {data.batchInfo.sampleNo && (
-                  <div className={styles.detailRow} style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                    marginBottom: '8px'
-                  }}>
-                    <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                      Sample Number:
-                    </span>
-                    <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>{data.batchInfo.sampleNo}</span>
-                  </div>
-                )}
-                <div className={styles.detailRow} style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  marginBottom: '8px'
-                }}>
-                  <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                    Manufacturing Date:
-                  </span>
-                  <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                    {formatDate(data.batchInfo.manufacturingDate)}
-                  </span>
-                </div>
-                <div className={styles.detailRow} style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  marginBottom: '8px'
-                }}>
-                  <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                    Expiry Date:
-                  </span>
-                  <span className={data.batchInfo.isExpired ? styles.expired : styles.valid} style={{
-                    fontSize: 'clamp(13px, 14px, 1.5vw)'
-                  }}>
-                    {formatDate(data.batchInfo.expiryDate)}
-                  </span>
-                </div>
-                {data.batchInfo.availablePackageSizes && data.batchInfo.availablePackageSizes.length > 0 && (
-                  <div className={styles.detailRow} style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                    marginBottom: '8px'
-                  }}>
-                    <span className={styles.detailLabel} style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                      Available Package Sizes:
-                    </span>
-                    <span style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                      {data.batchInfo.availablePackageSizes.join(', ')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.productDescription} style={{ width: '100%' }}>
-              <div className={styles.descriptionContent}>
-                <div className={styles.tabs} style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  marginBottom: '16px'
-                }}>
-                  {['composition', 'application', 'benefits', 'safety'].map((tab) => (
-                    <div
-                      key={tab}
-                      className={`${styles.tab} ${currentTab === tab ? styles.active : ''}`}
-                      onClick={() => changeTab(tab)}
-                      style={{
-                        padding: '10px 16px',
-                        fontSize: 'clamp(13px, 14px, 1.5vw)',
-                        flex: '1 1 auto',
-                        minWidth: '100px',
-                        textAlign: 'center'
-                      }}
-                    >
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </div>
-                  ))}
-                </div>
-
-                {currentTab === 'composition' && (
-                  <div className={styles.tabContent} style={{ padding: '16px 0' }}>
-                    <h3 style={{
-                      fontSize: 'clamp(16px, 18px, 2vw)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      🧪 {data.composition?.title || 'Composition'}
-                    </h3>
-                    
-                    <div style={{ marginBottom: '24px' }}>
-                      <IngredientsTable ingredients={data.composition?.ingredients} />
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <SmartDownloadButton 
-                        docPath={data.msds}
-                        filename="MSDS"
-                        type="documents"
-                        label="Material Safety Data Sheet (MSDS)"
-                      />
-                    </div>
-
-                    {data.batchInfo.isExpired && (
-                      <div className={styles.warningBox} style={{
-                        fontSize: 'clamp(13px, 14px, 1.5vw)'
-                      }}>
-                        ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used.
-                      </div>
-                    )}
-                    {expiryStatus?.status === 'expiring' && (
-                      <div
-                        className={styles.warningBox}
-                        style={{
-                          background: '#fff3cd',
-                          borderColor: '#ffeaa7',
-                          color: '#856404',
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}
-                      >
-                        ⚠️ <strong>NOTICE:</strong> This batch is expiring soon. Use before{' '}
-                        {formatDate(data.batchInfo.expiryDate)}.
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {currentTab === 'application' && (
-                  <div className={styles.tabContent} style={{ padding: '16px 0' }}>
-                    <h3 style={{
-                      fontSize: 'clamp(16px, 18px, 2vw)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      📋 {data.application?.title || 'Application Instructions'}
-                    </h3>
-                    {data.batchInfo.isExpired ? (
-                      <div className={styles.warningBox} style={{
-                        fontSize: 'clamp(13px, 14px, 1.5vw)'
-                      }}>
-                        ⚠️ <strong>WARNING:</strong> This batch has expired and should not be used for agricultural
-                        purposes. Please dispose properly according to environmental regulations.
-                      </div>
-                    ) : (
-                      <div className={styles.instructionsSection}>
-                        {data.application?.instructions?.length > 0 ? (
-                          <ul className={styles.benefitsList} style={{
-                            fontSize: 'clamp(13px, 14px, 1.5vw)'
-                          }}>
-                            {data.application.instructions.map((instruction, index) => (
-                              <li key={index}>{instruction}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p style={{ fontSize: 'clamp(13px, 14px, 1.5vw)' }}>
-                            No application instructions available.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    <div className={styles.sectionHeader}>
-                      <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>📞 Contact Information</h4>
-                    </div>
-                    <div className={styles.contactCard} style={{
-                      padding: '16px',
-                      fontSize: 'clamp(13px, 14px, 1.5vw)'
-                    }}>
-                      <div className={styles.contactItem}>
-                        <span className={styles.contactLabel}>📍 Address:</span>
-                        <span>{data.contact?.name || 'Gonagodalla road, Pelwatta, Buttala.'}</span>
-                      </div>
-                      <div className={styles.contactItem}>
-                        <span className={styles.contactLabel}>📞 Phone:</span>
-                        <span>
-                          {data.contact?.phones?.length > 0
-                            ? data.contact.phones.join(' / ')
-                            : '+94 557284040'}
-                        </span>
-                      </div>
-                      <div className={styles.contactItem}>
-                        <span className={styles.contactLabel}>✉️ Email:</span>
-                        <span>{data.contact?.email || 'info@farmersfert.com'}</span>
-                      </div>
-                      <div className={styles.contactItem}>
-                        <span className={styles.contactLabel}>🌐 Website:</span>
-                        <span>{data.contact?.website || 'www.farmersfert.com'}</span>
-                      </div>
-                    </div>
-                    {!data.batchInfo.isExpired && data.application?.recommendedCrops?.length > 0 && (
-                      <>
-                        <div className={styles.sectionHeader}>
-                          <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🌾 Recommended Crops</h4>
-                        </div>
-                        <div className={styles.cropsStack} style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: '12px'
-                        }}>
-                          {data.application.recommendedCrops.map((crop, index) => (
-                            <div key={index} className={styles.cropCard} style={{
-                              fontSize: 'clamp(13px, 14px, 1.5vw)'
-                            }}>
-                              <span className={styles.cropIcon}>🌱</span>
-                              <span className={styles.cropName}>{crop}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {currentTab === 'benefits' && (
-                  <div className={styles.tabContent} style={{ padding: '16px 0' }}>
-                    <h3 style={{
-                      fontSize: 'clamp(16px, 18px, 2vw)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      ✨ {data.composition?.title || 'Advantages'}
-                    </h3>
-                    {data.batchInfo.isExpired ? (
-                      <div className={styles.warningBox} style={{
-                        fontSize: 'clamp(13px, 14px, 1.5vw)'
-                      }}>
-                        ⚠️ This batch has expired and should not be used
-                      </div>
-                    ) : (
-                      <>
-                        <div className={styles.sectionHeader}>
-                          <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🎯 Key Benefits</h4>
-                        </div>
-                        <ul className={styles.benefitsList} style={{
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          {data.composition?.advantages?.length > 0 ? (
-                            data.composition.advantages.map((advantage, index) => (
-                              <li key={index}>{advantage}</li>
-                            ))
-                          ) : (
-                            <li>No advantages information available</li>
-                          )}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {currentTab === 'safety' && (
-                  <div className={styles.tabContent} style={{ padding: '16px 0' }}>
-                    <h3 style={{
-                      fontSize: 'clamp(16px, 18px, 2vw)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      🛡️ {data.safety?.title || 'Safety Instructions'}
-                    </h3>
-                    {data.batchInfo.isExpired ? (
-                      <>
-                        <div className={styles.warningBox} style={{
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          ❌ <strong>EXPIRED BATCH - DO NOT USE</strong>
-                        </div>
-                        <div className={styles.sectionHeader}>
-                          <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>🗑️ Disposal Instructions</h4>
-                        </div>
-                        <ul className={styles.benefitsList} style={{
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          <li>Do not use this expired batch</li>
-                          <li>Contact local environmental authorities for disposal guidelines</li>
-                          <li>Do not pour down drains or dispose in regular waste</li>
-                          <li>Contact manufacturer for safe disposal procedures</li>
-                        </ul>
-                      </>
-                    ) : (
-                      <>
-                        <div className={styles.sectionHeader}>
-                          <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>
-                            🥽 {data.safety?.ppe?.title || 'Personal Protective Equipment (PPE):'}
-                          </h4>
-                        </div>
-                        <ul className={styles.benefitsList} style={{
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          {data.safety?.ppe?.instructions?.length > 0 ? (
-                            data.safety.ppe.instructions.map((instruction, index) => (
-                              <li key={index}>{instruction}</li>
-                            ))
-                          ) : (
-                            <li>No PPE instructions available</li>
-                          )}
-                        </ul>
-                        <div className={styles.sectionHeader}>
-                          <h4 style={{ fontSize: 'clamp(15px, 16px, 1.8vw)' }}>
-                            🧼 {data.safety?.hygiene?.title || 'Work Hygiene Practices:'}
-                          </h4>
-                        </div>
-                        <ul className={styles.benefitsList} style={{
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          {data.safety?.hygiene?.instructions?.length > 0 ? (
-                            data.safety.hygiene.instructions.map((instruction, index) => (
-                              <li key={index}>{instruction}</li>
-                            ))
-                          ) : (
-                            <li>No hygiene instructions available</li>
-                          )}
-                        </ul>
-                      </>
-                    )}
-
-                    <div style={{ marginTop: '24px' }}>
-                      <div className={styles.sectionHeader}>
-                        <h4 style={{ fontSize: 'clamp(16px, 18px, 2vw)' }}>📋 Available Documents</h4>
-                      </div>
-                      
-                      <SmartDownloadButton 
-                        docPath={data.certifications?.qualityStandards}
-                        filename="Quality-Certifications"
-                        type="documents"
-                        label="Quality Standard Certifications"
-                      />
-
-                      <SmartDownloadButton 
-                        docPath={data.npsApproval}
-                        filename="NPS-Marketing-Approval"
-                        type="documents"
-                        label="NPS Marketing Approval"
-                      />
-
-                      {!isDocumentAvailable(data.certifications?.qualityStandards) && 
-                       !isDocumentAvailable(data.npsApproval) && (
-                        <div style={{
-                          padding: '20px',
-                          backgroundColor: '#f8f9fa',
-                          borderRadius: '10px',
-                          border: '1px solid #dee2e6',
-                          textAlign: 'center',
-                          color: '#6c757d',
-                          fontSize: 'clamp(13px, 14px, 1.5vw)'
-                        }}>
-                          <div style={{ fontSize: 'clamp(1.5rem, 2rem, 2.5vw)', marginBottom: '8px' }}>📄</div>
-                          <div>No additional documents are available for download at this time.</div>
-                          <div style={{ fontSize: 'clamp(12px, 13px, 1.4vw)', marginTop: '4px' }}>
-                            This product meets all required quality standards and certifications.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      );
-    }
+      </div>
+    </div>
+  );
+}
